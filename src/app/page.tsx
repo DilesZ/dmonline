@@ -187,81 +187,82 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
         <div className="bg-veil" />
       </div>
 
-      <div className="stage-grid">
-        {/* Columna principal: tipografía gigante + CTA */}
-        <div className="spot" key={'t' + active}>
-          <div className="spot-topline">
-            <span className="spot-sys">{label}</span>
-            <span className="spot-num">{num} / {String(items.length).padStart(2, '0')}</span>
+      <div className="stage-body">
+        {/* Índice tipográfico — columna izquierda */}
+        <aside className="rail-wrap">
+          <div className="rail-head">
+            <span>ÍNDICE COMPLETO</span>
+            <span>{items.length} {items.length === 1 ? 'JUEGO' : 'JUEGOS'}</span>
           </div>
-          <h2 className="spot-title">{current.title}</h2>
-          <div className="spot-actions">
-            <a className="spot-play" href={current.href}>
-              <span className="play-tri">▶</span> JUGAR AHORA
-            </a>
-            <span className="spot-hint">← → cambiar · Enter jugar</span>
+          <div className="rail">
+            {items.map((item, index) => {
+              const a = accentOf(item.core);
+              const on = index === active;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`rail-item${on ? ' on' : ''}`}
+                  style={{ '--i-acc': a.main, '--i-soft': a.soft } as React.CSSProperties}
+                  onMouseEnter={() => go(index)}
+                  onFocus={() => go(index)}
+                  onClick={() => go(index)}
+                >
+                  <span className="rail-num">{String(index + 1).padStart(2, '0')}</span>
+                  <span className="rail-thumb">
+                    <img src={item.coverSrc} alt="" loading="lazy" />
+                  </span>
+                  <span className="rail-title">{item.title}</span>
+                  <span className="rail-core">{CORE_LABEL[item.core] ?? item.core}</span>
+                </button>
+              );
+            })}
           </div>
-        </div>
+        </aside>
 
-        {/* Pantalla CRT con captura del juego */}
-        <div className="crt" key={'c' + active}>
-          <div className="crt-inner">
-            {previewOk && (current.previewSrc || current.coverSrc) ? (
-              <img
-                src={current.previewSrc ?? current.coverSrc}
-                alt={`Pantalla de ${current.title}`}
-                onError={() => {
-                  if (current.previewSrc && current.previewSrc !== current.coverSrc) setPreviewOk(false);
-                  else setPreviewOk(false);
-                }}
-              />
-            ) : coverOk ? (
-              <img
-                src={current.coverSrc}
-                alt={`Carátula de ${current.title}`}
-                onError={() => setCoverOk(false)}
-                className="crt-cover"
-              />
-            ) : (
-              <div className="crt-fallback"><span>{current.title}</span></div>
-            )}
-            <div className="crt-scan" />
+        {/* Escenario principal */}
+        <div className="stage-main">
+          <div className="spot" key={'t' + active}>
+            <div className="spot-topline">
+              <span className="spot-sys">{label}</span>
+              <span className="spot-num">{num} / {String(items.length).padStart(2, '0')}</span>
+            </div>
+            <h2 className="spot-title">{current.title}</h2>
+            <div className="spot-actions">
+              <a className="spot-play" href={current.href}>
+                <span className="play-tri">▶</span> JUGAR AHORA
+              </a>
+              <span className="spot-hint">← → cambiar · Enter jugar</span>
+            </div>
           </div>
-          <div className="crt-foot">
-            <span className="crt-dot" /> READY
-          </div>
-        </div>
-      </div>
 
-      {/* Índice tipográfico de la biblioteca */}
-      <div className="rail-wrap">
-        <div className="rail-head">
-          <span>ÍNDICE COMPLETO</span>
-          <span>{items.length} {items.length === 1 ? 'JUEGO' : 'JUEGOS'}</span>
-        </div>
-        <div className="rail">
-          {items.map((item, index) => {
-            const a = accentOf(item.core);
-            const on = index === active;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className={`rail-item${on ? ' on' : ''}`}
-                style={{ '--i-acc': a.main, '--i-soft': a.soft } as React.CSSProperties}
-                onMouseEnter={() => go(index)}
-                onFocus={() => go(index)}
-                onClick={() => go(index)}
-              >
-                <span className="rail-num">{String(index + 1).padStart(2, '0')}</span>
-                <span className="rail-thumb">
-                  <img src={item.coverSrc} alt="" loading="lazy" />
-                </span>
-                <span className="rail-title">{item.title}</span>
-                <span className="rail-core">{CORE_LABEL[item.core] ?? item.core}</span>
-              </button>
-            );
-          })}
+          <div className="crt" key={'c' + active}>
+            <div className="crt-inner">
+              {previewOk && (current.previewSrc || current.coverSrc) ? (
+                <img
+                  src={current.previewSrc ?? current.coverSrc}
+                  alt={`Pantalla de ${current.title}`}
+                  onError={() => {
+                    if (current.previewSrc && current.previewSrc !== current.coverSrc) setPreviewOk(false);
+                    else setPreviewOk(false);
+                  }}
+                />
+              ) : coverOk ? (
+                <img
+                  src={current.coverSrc}
+                  alt={`Carátula de ${current.title}`}
+                  onError={() => setCoverOk(false)}
+                  className="crt-cover"
+                />
+              ) : (
+                <div className="crt-fallback"><span>{current.title}</span></div>
+              )}
+              <div className="crt-scan" />
+            </div>
+            <div className="crt-foot">
+              <span className="crt-dot" /> READY
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -474,19 +475,19 @@ export default function Home() {
         .search:focus { border-color: #a78bfa; box-shadow: 0 0 14px rgba(124,58,237,.35); }
 
         /* ===== HERO ===== */
-        .hero { text-align: center; padding: 52px 20px 30px; }
+        .hero { text-align: center; padding: 30px 20px 22px; }
         .hero-kicker {
-          display: inline-block; margin-bottom: 14px; padding: 6px 12px;
+          display: inline-block; margin-bottom: 10px; padding: 5px 12px;
           border-radius: 999px; border: 1px solid rgba(167,139,250,.35);
           background: rgba(124,58,237,.12); color: #c4b5fd;
-          font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+          font-size: 10.5px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
           animation: flicker 4s infinite;
         }
         @keyframes flicker {
           0%, 100% { opacity: 1; } 92% { opacity: 1; } 93% { opacity: .55; } 94% { opacity: 1; } 96% { opacity: .7; } 97% { opacity: 1; }
         }
         .hero h1 {
-          font-size: clamp(28px, 5vw, 50px); font-weight: 900; line-height: 1.12;
+          font-size: clamp(26px, 4.2vw, 42px); font-weight: 900; line-height: 1.1;
           color: #fff; letter-spacing: .5px; margin: 0;
         }
         .hero h1 em {
@@ -536,14 +537,84 @@ export default function Home() {
             radial-gradient(80% 60% at 85% 100%, rgba(0,0,0,.55), transparent 70%);
         }
 
-        .stage-grid {
+        .stage-body {
           position: relative; z-index: 1;
           display: grid;
-          grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr);
-          gap: 34px;
-          padding: 46px 48px 38px;
+          grid-template-columns: 340px minmax(0, 1fr);
+          min-height: 460px;
+        }
+
+        /* --- Índice lateral izquierdo --- */
+        .rail-wrap {
+          display: flex; flex-direction: column;
+          border-right: 1px solid rgba(167,139,250,.16);
+          background: rgba(5,2,12,.62);
+          backdrop-filter: blur(6px);
+          min-width: 0;
+        }
+        .rail-head {
+          display: flex; justify-content: space-between; align-items: center;
+          padding: 14px 18px 10px;
+          font-size: 10px; font-weight: 900; letter-spacing: 2.6px; color: #77689f;
+          border-bottom: 1px solid rgba(167,139,250,.12);
+        }
+        .rail {
+          flex: 1; overflow-y: auto;
+          padding: 8px 10px 14px;
+          scrollbar-width: thin;
+          scrollbar-color: #37265c transparent;
+        }
+        .rail::-webkit-scrollbar { width: 8px; }
+        .rail::-webkit-scrollbar-thumb { background: #37265c; border-radius: 99px; }
+        .rail-item {
+          display: flex; align-items: center; gap: 13px;
+          width: 100%;
+          padding: 9px 16px;
+          background: transparent; border: 0; border-radius: 12px;
+          color: #b9add7; font-family: inherit;
+          font-size: 14px; font-weight: 700; letter-spacing: .4px;
+          text-align: left; cursor: pointer;
+          transition: background .14s ease, color .14s ease, transform .14s ease;
+        }
+        .rail-item:hover { background: rgba(167,139,250,.08); color: #fff; transform: translateX(4px); }
+        .rail-item.on {
+          background: linear-gradient(90deg, var(--i-soft), transparent 70%);
+          color: #fff;
+          box-shadow: inset 3px 0 0 var(--i-acc);
+        }
+        .rail-num {
+          font-size: 11px; font-weight: 900; letter-spacing: 1px;
+          color: #5f527f; width: 26px; flex-shrink: 0;
+          font-variant-numeric: tabular-nums;
+        }
+        .rail-item.on .rail-num { color: var(--i-acc); }
+        .rail-thumb {
+          width: 40px; height: 52px; flex-shrink: 0;
+          border-radius: 7px; overflow: hidden;
+          border: 1px solid rgba(167,139,250,.25);
+          opacity: 0; transform: scale(.85) rotate(-4deg);
+          transition: opacity .18s ease, transform .18s ease;
+          background: #120a20;
+        }
+        .rail-item.on .rail-thumb, .rail-item:hover .rail-thumb { opacity: 1; transform: none; }
+        .rail-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .rail-title {
+          flex: 1; min-width: 0;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .rail-core {
+          font-size: 9px; font-weight: 900; letter-spacing: 1.6px;
+          color: #5f527f; flex-shrink: 0;
+        }
+        .rail-item.on .rail-core { color: var(--i-acc); }
+
+        /* --- Escenario principal (derecha) --- */
+        .stage-main {
+          display: grid;
+          grid-template-columns: minmax(0, 1.15fr) minmax(260px, .85fr);
+          gap: 32px;
+          padding: 40px 44px 34px;
           align-items: center;
-          min-height: 430px;
         }
 
         /* --- Columna tipográfica --- */
@@ -635,68 +706,6 @@ export default function Home() {
         }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
 
-        /* ===== RAIL (índice) ===== */
-        .rail-wrap {
-          position: relative; z-index: 1;
-          border-top: 1px solid rgba(167,139,250,.16);
-          background: rgba(6,3,13,.55);
-          backdrop-filter: blur(6px);
-        }
-        .rail-head {
-          display: flex; justify-content: space-between; align-items: center;
-          padding: 12px 26px 10px;
-          font-size: 10px; font-weight: 900; letter-spacing: 2.6px; color: #77689f;
-        }
-        .rail {
-          max-height: 240px; overflow-y: auto;
-          padding: 0 12px 14px;
-          scrollbar-width: thin;
-          scrollbar-color: #37265c transparent;
-        }
-        .rail::-webkit-scrollbar { width: 8px; }
-        .rail::-webkit-scrollbar-thumb { background: #37265c; border-radius: 99px; }
-        .rail-item {
-          display: flex; align-items: center; gap: 12px;
-          width: 100%;
-          padding: 8px 14px;
-          background: transparent; border: 0; border-radius: 12px;
-          color: #b9add7; font-family: inherit;
-          font-size: 13px; font-weight: 700; letter-spacing: .4px;
-          text-align: left; cursor: pointer;
-          transition: background .14s ease, color .14s ease, transform .14s ease;
-        }
-        .rail-item:hover { background: rgba(167,139,250,.08); color: #fff; transform: translateX(4px); }
-        .rail-item.on {
-          background: linear-gradient(90deg, var(--i-soft), transparent 70%);
-          color: #fff;
-          box-shadow: inset 3px 0 0 var(--i-acc);
-        }
-        .rail-num {
-          font-size: 10.5px; font-weight: 900; letter-spacing: 1px;
-          color: #5f527f; width: 26px; flex-shrink: 0;
-          font-variant-numeric: tabular-nums;
-        }
-        .rail-item.on .rail-num { color: var(--i-acc); }
-        .rail-thumb {
-          width: 34px; height: 44px; flex-shrink: 0;
-          border-radius: 6px; overflow: hidden;
-          border: 1px solid rgba(167,139,250,.25);
-          opacity: 0; transform: scale(.85) rotate(-4deg);
-          transition: opacity .18s ease, transform .18s ease;
-          background: #120a20;
-        }
-        .rail-item.on .rail-thumb, .rail-item:hover .rail-thumb { opacity: 1; transform: none; }
-        .rail-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .rail-title {
-          flex: 1; min-width: 0;
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-        .rail-core {
-          font-size: 9px; font-weight: 900; letter-spacing: 1.6px;
-          color: #5f527f; flex-shrink: 0;
-        }
-        .rail-item.on .rail-core { color: var(--i-acc); }
-
         /* ===== SKELETON ===== */
         .skeleton-stage { min-height: 430px; padding: 60px 48px; display: flex; flex-direction: column; gap: 18px; }
         .skel-line {
@@ -732,24 +741,29 @@ export default function Home() {
         .tech { margin-top: 8px; color: #3d3358; }
 
         /* ===== RESPONSIVE ===== */
-        @media (max-width: 980px) {
-          .stage-grid { grid-template-columns: 1fr; gap: 26px; padding: 34px 26px 28px; min-height: 0; }
-          .crt { width: min(100%, 340px); transform: none; }
+        @media (max-width: 1020px) {
+          .stage-body { grid-template-columns: 1fr; }
+          .rail-wrap {
+            order: 2;
+            border-right: 0; border-top: 1px solid rgba(167,139,250,.16);
+          }
+          .rail { max-height: 210px; }
+          .stage-main { padding: 30px 26px 26px; grid-template-columns: 1fr; gap: 24px; }
+          .crt { width: min(100%, 340px); transform: none; margin: 0 auto; }
           @keyframes crtIn { from { opacity: 0; transform: translateY(22px) scale(.96); } to { opacity: 1; transform: none; } }
-          .rail { max-height: 200px; }
         }
         @media (max-width: 640px) {
           .nav { flex-wrap: wrap; padding: 12px 16px; }
           .links { width: 100%; justify-content: flex-start; }
           .search { flex: 1; width: auto; }
-          .hero { padding: 38px 16px 24px; }
+          .hero { padding: 26px 16px 18px; }
           main { padding: 4px 14px 34px; }
           .stage-wrap { border-radius: 22px; }
-          .stage-grid { padding: 26px 20px 22px; }
           .spot-title { font-size: clamp(26px, 8.4vw, 44px); }
           .spot-hint { display: none; }
-          .rail-head { padding: 10px 18px 8px; }
+          .rail-head { padding: 10px 16px 8px; }
           .rail { padding: 0 8px 12px; }
+          .stage-main { padding: 24px 18px 20px; }
         }
       `}</style>
     </div>
