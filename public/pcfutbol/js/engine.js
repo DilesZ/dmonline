@@ -93,6 +93,23 @@ ENGINE.calcValor = function (j) {
   return Math.round(val / 10000) * 10000;
 };
 
+// Sube o baja atributos uno a uno hasta que la media del jugador coincida
+// con el valor objetivo (usado para calcar jugadores reales).
+ENGINE.ajustarMedia = function (j, objetivo) {
+  objetivo = clamp(Math.round(objetivo), 35, 96);
+  let guard = 0;
+  while (j.media !== objetivo && guard++ < 150) {
+    const dir = j.media < objetivo ? 1 : -1;
+    const cands = Object.keys(j.attrs).filter(a =>
+      (a === 'por' ? j.pos === 'POR' : j.pos !== 'POR') &&
+      (dir > 0 ? j.attrs[a] < 97 : j.attrs[a] > 24));
+    if (!cands.length) break;
+    const attr = cands[Math.floor(Math.random() * cands.length)];
+    j.attrs[attr] += dir;
+    j.media = ENGINE.calcMedia(j);
+  }
+};
+
 ENGINE.canterano = function (st, teamId) {
   const t = st.teams[teamId];
   const pos = pick(['POR', 'DEF', 'DEF', 'MED', 'MED', 'MED', 'DEL', 'DEL']);
@@ -143,19 +160,48 @@ ENGINE.nuevaPartida = function (nombreManager, teamId) {
     };
   }
 
-  // Plantillas: 3 POR, 8 DEF, 8 MED, 5 DEL
-  const usados = new Set();
+  // Plantillas: reales (DATA.PLANTILLAS, temporada 2026-27) si existen;
+  // si no, generadas. Relleno hasta el mínimo por posición en ambos casos.
+  const usados = new Set(DATA.PLANTILLAS ? Object.values(DATA.PLANTILLAS).flat().map(r => r.n) : []);
   for (const e of DATA.EQUIPOS) {
-    const dist = [['POR', 3], ['DEF', 8], ['MED', 8], ['DEL', 5]];
-    for (const [pos, n] of dist) {
-      for (let i = 0; i < n; i++) {
-        const j = ENGINE.nuevoJugador(e.str, pos, e.str > 80 ? 20 : 19, 36);
+    const real = DATA.PLANTILLAS && DATA.PLANTILLAS[e.id];
+    if (real) {
+      for (const r of real) {
+        const j = ENGINE.nuevoJugador(e.str, r.pos, r.e, Math.max(r.e ?? 18, 18));
+        j.id = st.seq++;
+        j.equipo = e.id;
+        j.nombre = r.n;
+        if (r.p) j.pais = r.p;
+        ENGINE.ajustarMedia(j, r.m ?? clamp(e.str - rndInt(2, 9), 40, 90));
+        st.players.push(j);
+      }
+    } else {
+      const dist = [['POR', 3], ['DEF', 8], ['MED', 8], ['DEL', 5]];
+      for (const [pos, n] of dist) {
+        for (let i = 0; i < n; i++) {
+          const j = ENGINE.nuevoJugador(e.str, pos, e.str > 80 ? 20 : 19, 36);
+          j.equipo = e.id;
+          let intentos = 0;
+          do { j.nombre = ENGINE.nombreAleatorio(j.pais); intentos++; } while (usados.has(j.nombre) && intentos < 50);
+          usados.add(j.nombre);
+          st.players.push(j);
+        }
+      }
+      continue;
+    }
+    // Mínimos de posición para plantillas reales cortas
+    const minimo = [['POR', 2], ['DEF', 7], ['MED', 7], ['DEL', 4]];
+    for (const [pos, min] of minimo) {
+      let n = st.players.filter(p => p.equipo === e.id && p.pos === pos).length;
+      while (n < min) {
+        const j = ENGINE.nuevoJugador(clamp(e.str - rndInt(3, 10), 40, 88), pos, 18, 33);
         j.id = st.seq++;
         j.equipo = e.id;
         let intentos = 0;
         do { j.nombre = ENGINE.nombreAleatorio(j.pais); intentos++; } while (usados.has(j.nombre) && intentos < 50);
         usados.add(j.nombre);
         st.players.push(j);
+        n++;
       }
     }
   }
