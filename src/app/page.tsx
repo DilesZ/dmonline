@@ -31,7 +31,16 @@ function GameCard({ rom, biosId }: { rom: DriveRom; biosId?: string | null }) {
     name: rom.name,
     core,
   });
-  if (core === 'arcade' && biosId) params.set('bios', biosId);
+  // BIOS de Neo Geo: si hay neogeo.zip en Drive se usa; si no, se extrae
+  // automáticamente del propio zip del juego (packs "juego + BIOS").
+  if (core === 'arcade') {
+    if (biosId) {
+      params.set('bios', biosId);
+    } else {
+      params.set('bios', rom.id);
+      params.set('biosextract', '1');
+    }
+  }
 
   return (
     <a className="game" href={`/snes_emulator.html?${params.toString()}`}>
