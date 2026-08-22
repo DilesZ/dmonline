@@ -39,13 +39,13 @@ function WebGameCard() {
   return (
     <a className="game" href="/pcfutbol/">
       <div className="cover">
-        <img src={PCF_COVER} alt="PC Fútbol 2026" loading="lazy" />
+        <img src="/pcfutbol/cover.jpg" alt="PC Fútbol 6.0 - Apertura 98" loading="lazy" />
         <span className="sys">MANAGER</span>
         <div className="play">
           <span className="playbtn">▶</span>
         </div>
       </div>
-      <span className="title">PC Fútbol 2026</span>
+      <span className="title">PC Fútbol 6.0</span>
     </a>
   );
 }
