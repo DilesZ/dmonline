@@ -67,7 +67,12 @@
 
     // Solo aceptamos http(s), blob: y rutas same-origin (/api/drive) — nunca data:.
     if (!/^(https:|blob:|\/)/i.test(rom)) {
-      rom = '';
+      document.getElementById('game').style.display = 'none';
+      var e = document.getElementById('err');
+      e.style.display = 'block';
+      e.innerHTML = '<strong>La URL de la ROM no es válida.</strong><br>' +
+        'Vuelve al hub y abre el juego desde la biblioteca.';
+      return;
     }
 
     if (name) {
