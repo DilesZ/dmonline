@@ -227,22 +227,29 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
               const a = accentOf(item.core);
               const on = index === active;
               return (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`rail-item${on ? ' on' : ''}`}
-                  style={{ '--i-acc': a.main, '--i-soft': a.soft } as React.CSSProperties}
-                  onMouseEnter={() => go(index)}
-                  onFocus={() => go(index)}
-                  onClick={() => go(index)}
+                <div
+                key={item.id}
+                className={`rail-item${on ? ' on' : ''}`}
+                style={{ '--i-acc': a.main, '--i-soft': a.soft } as React.CSSProperties}
+                onMouseEnter={() => go(index)}
+                onClick={() => go(index)}
+              >
+                <a
+                  className="rail-play"
+                  href={item.href}
+                  title={`Jugar a ${item.title}`}
+                  aria-label={`Jugar a ${item.title}`}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <span className="rail-num">{String(index + 1).padStart(2, '0')}</span>
-                  <span className="rail-thumb">
-                    <Thumb sources={item.covers} alt="" />
-                  </span>
-                  <span className="rail-title">{item.title}</span>
-                  <span className="rail-core">{CORE_LABEL[item.core] ?? item.core}</span>
-                </button>
+                  ▶
+                </a>
+                <span className="rail-num">{String(index + 1).padStart(2, '0')}</span>
+                <span className="rail-thumb">
+                  <Thumb sources={item.covers} alt="" />
+                </span>
+                <span className="rail-title">{item.title}</span>
+                <span className="rail-core">{CORE_LABEL[item.core] ?? item.core}</span>
+              </div>
               );
             })}
           </div>
@@ -626,6 +633,24 @@ export default function Home() {
           color: #5f527f; flex-shrink: 0;
         }
         .rail-item.on .rail-core { color: var(--i-acc); }
+        .rail-play {
+          flex-shrink: 0;
+          width: 26px; height: 26px;
+          border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 10px;
+          color: var(--i-acc);
+          background: rgba(255,255,255,.05);
+          border: 1px solid var(--i-acc);
+          text-decoration: none;
+          transition: all .14s ease;
+        }
+        .rail-item:hover .rail-play {
+          background: var(--i-acc); color: #0a0614;
+          box-shadow: 0 0 16px var(--i-soft);
+          transform: scale(1.08);
+        }
+        .rail-play:active { transform: scale(.94); }
 
         /* --- Escenario principal (derecha) --- */
         .stage-main {
