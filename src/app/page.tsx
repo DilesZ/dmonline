@@ -413,3 +413,218 @@ export default function Home() {
     </div>
   );
 }
+
+// ─── Visualizador de Carátulas ────────────────────────────
+function GameViewer() {
+  const [active, setActive] = useState(-1);
+  const covers = Object.values(DATA.PLANTILLAS ?? {}).flat();
+  const [hovered, setHovered] = useState(-1);
+
+  const handleMouseEnter = (i: number) => {
+    setHovered(i);
+    setTimeout(() => setActive(i), 300);
+  };
+  const handleMouseLeave = () => {
+    setHovered(-1);
+    setTimeout(() => setActive(-1), 300);
+  };
+
+  if (covers.length === 0) return null;
+
+  const visible = covers.slice(Math.max(0, active - 1), active + 2);
+  const isActive = (i: number) => i === active;
+
+  return (
+    <section
+      className="game-viewer"
+      aria-label="Visualizador de carátulas"
+      style={{ display: 'none' }}
+    >
+      <div className="viewer-wrapper">
+        <div className="viewer-carousel">
+          {visible.map((rom, i) => {
+            const idx = active - 1 + i;
+            const romData = covers[idx];
+            if (!romData) return null;
+            const isActive = active >= 0 && idx === active;
+            const isHover = hovered >= 0 && hovered === idx;
+            const scale = isActive ? 1.2 : isHover ? 1.1 : 1;
+            const z = isActive ? 5 : isHover ? 4 : 3;
+
+            return (
+              <div
+                key={rom.n}
+                className="viewer-item"
+                style={{
+                  transform: `translateX(${i * 140}px) scale(${scale})`,
+                  zIndex: z,
+                  transition: 'transform 0.2s ease',
+                }}
+                onMouseEnter={() => handleMouseEnter(idx)}
+                onMouseLeave={() => handleMouseLeave()}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="viewer-cover">
+                  <img
+                    src={rom.p ? rom.p : '/pcfutbol/cover.jpg'}
+                    alt={rom.n}
+                    loading="lazy"
+                    style={{
+                      width: isActive ? 280 : 220,
+                      height: isActive ? 336 : 264,
+                      objectFit: 'cover',
+                    }}
+                  />
+                  <div className="viewer-sys">{SYS_BY_CORE[rom.core ?? 'arcade']}</div>
+                </div>
+                <div className="viewer-info">
+                  <div className="viewer-name">{rom.n}</div>
+                  <div className="viewer-core">{CORE_LABEL[rom.core ?? 'arcade']}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {active >= 0 && (
+          <div
+            className="viewer-preview"
+            style={{ left: active === 0 ? '0' : active === 1 ? '300px' : '600px' }}
+          >
+            <div className="viewer-preview-header">
+              <span className="viewer-close"
+                    onMouseLeave={() => setHovered(-1)}
+                    aria-label="Cerrar preview">
+                ✕
+              </span>
+              <h3 className="viewer-title">{covers[active]?.n ?? 'Juego'}</h3>
+            </div>
+            <div className="viewer-body">
+              <img
+                src={covers[active]?.p ?? '/pcfutbol/cover.jpg'}
+                alt={covers[active]?.n ?? 'Portada'}
+                style={{
+                  width: '100%',
+                  height: 200,
+                  objectFit: 'cover',
+                  borderRadius: 8,
+                  margin: '12px 0',
+                }}
+              />
+              <div className="viewer-details">
+                <p><strong>Core:</strong> {covers[active]?.core ?? 'arcade'}</p>
+                <p><strong>Posición:</strong> {covers[active]?.pos ?? 'N/A'}</p>
+                <p><strong>País:</strong> {covers[active]?.pais ?? 'España'}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+const useViewerStyles = () => {
+  const style = document.createElement('style');
+  style.textContent = `
+    .game-viewer {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: none;
+    }
+    .viewer-wrapper {
+      position: relative;
+      height: 100%;
+      pointer-events: auto;
+    }
+    .viewer-carousel {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px 0;
+      gap: 14px;
+    }
+    .viewer-item {
+      flex: 0 0 auto;
+      width: 140px;
+      scroll-snap-align: center;
+      cursor: pointer;
+      transition: transform .15s;
+    }
+    .viewer-item:hover { transform: scale(1.08); }
+    .viewer-cover {
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.3);
+      transition: transform .15s;
+    }
+    .viewer-cover:hover { transform: scale(1.05); }
+    .viewer-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .viewer-sys {
+      position: absolute; bottom: 4px; right: 4px;
+      font-size: 10px; color: #fff;
+      background: rgba(0,0,0,.6);
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
+    .viewer-info {
+      text-align: center;
+      font-size: 12px;
+      color: #aaa;
+    }
+    .viewer-name { font-weight: 600; margin-bottom: 4px; }
+    .viewer-preview {
+      position: fixed;
+      top: 0; right: 0; bottom: 0;
+      width: 400px;
+      max-width: 80vw;
+      background: var(--panel);
+      border-left: 4px solid var(--amarillo);
+      z-index: 10001;
+      overflow-y: auto;
+      padding: 24px;
+      pointer-events: auto;
+      box-shadow: -8px 0 24px rgba(0,0,0,.4);
+      transition: left .3s cubic-bezier(.4,0,.2,1);
+    }
+    .viewer-preview:hover { left: 0; }
+    .viewer-preview-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: -24px -24px 20px;
+      padding: 0 24px;
+    }
+    .viewer-preview-header h3 {
+      color: var(--amarillo); font-size: 20px; margin: 0;
+    }
+    .viewer-preview-header .viewer-close {
+      background: none; border: none; color: #888; cursor: pointer;
+      font-size: 24px; font-weight: normal;
+    }
+    .viewer-body {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .viewer-details p { margin: 4px 0; font-size: 13px; }
+  };
+  const existing = document.getElementById('viewer-styles');
+  if (!existing) { style.id = 'viewer-styles'; document.head.appendChild(style); }
+};
+
+useEffect(() => {
+  const existing = document.getElementById('viewer-styles');
+  if (!existing) { useViewerStyles(); }
+}, []);
+
+return null;
+`
+
+const existing = document.getElementById('viewer-styles');
+if (!existing) { const s = document.createElement('style'); s.id = 'viewer-styles'; s.textContent = `...`; document.head.appendChild(s); }
