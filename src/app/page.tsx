@@ -5,50 +5,24 @@ import { useCallback, useEffect, useState } from 'react';
 interface DriveRom {
   id: string;
   name: string;
-  size?: string;
-}
-
-const DRIVE_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_FOLDER_ID;
-const DRIVE_API_KEY = process.env.NEXT_PUBLIC_DRIVE_API_KEY;
-
-function formatSize(bytes?: string): string {
-  if (!bytes) return '';
-  const n = Number(bytes);
-  if (!Number.isFinite(n)) return '';
-  if (n > 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
-  return `${Math.round(n / 1024)} KB`;
 }
 
 export default function Home() {
   const [roms, setRoms] = useState<DriveRom[]>([]);
-  const [driveState, setDriveState] = useState<'idle' | 'ok' | 'error' | 'unconfigured'>('idle');
-
-  const driveEnabled = Boolean(DRIVE_FOLDER_ID && DRIVE_API_KEY);
+  const [driveState, setDriveState] = useState<'idle' | 'ok' | 'error'>('idle');
 
   const loadDrive = useCallback(async () => {
-    if (!driveEnabled) {
-      setDriveState('unconfigured');
-      return;
-    }
+    setDriveState('idle');
     try {
-      const q = encodeURIComponent(`'${DRIVE_FOLDER_ID}' in parents and trashed=false`);
-      const fields = encodeURIComponent('files(id,name,size,mimeType)');
-      const res = await fetch(
-        `https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&key=${DRIVE_API_KEY}`,
-      );
+      const res = await fetch('/api/drive?action=list');
       if (!res.ok) throw new Error(String(res.status));
-      const data = await res.json();
-      const files: DriveRom[] = (data.files ?? [])
-        .filter((f: { mimeType?: string; name: string }) =>
-          /\.(smc|sfc|swc|fig|zip)$/i.test(f.name ?? ''),
-        )
-        .sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name));
-      setRoms(files);
+      const data: { roms?: DriveRom[] } = await res.json();
+      setRoms(data.roms ?? []);
       setDriveState('ok');
     } catch {
       setDriveState('error');
     }
-  }, [driveEnabled]);
+  }, []);
 
   useEffect(() => {
     loadDrive();
@@ -91,21 +65,17 @@ export default function Home() {
                     <li key={r.id}>
                       <a
                         href={`/snes_emulator.html?rom=${encodeURIComponent(
-                          `https://www.googleapis.com/drive/v3/files/${r.id}?alt=media&key=${DRIVE_API_KEY}`,
+                          `/api/drive?action=file&id=${r.id}`,
                         )}&name=${encodeURIComponent(r.name)}`}
                         target="_blank"
                         rel="noreferrer"
                       >
                         ▸ {r.name.replace(/\.[^.]+$/, '')}
-                        <em> {formatSize(r.size)}</em>
                       </a>
                     </li>
                   ))}
                 </ul>
               </>
-            )}
-            {driveState === 'unconfigured' && (
-              <p>Pendiente de configurar la carpeta compartida y su clave de API.</p>
             )}
             {driveState === 'error' && (
               <>

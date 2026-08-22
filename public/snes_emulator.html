@@ -65,8 +65,8 @@
       return;
     }
 
-    // Solo aceptamos http(s) y blob: — nunca data: ni rutas locales.
-    if (!/^(https:|blob:)/i.test(rom)) {
+    // Solo aceptamos http(s), blob: y rutas same-origin (/api/drive) — nunca data:.
+    if (!/^(https:|blob:|\/)/i.test(rom)) {
       rom = '';
     }
 
