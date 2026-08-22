@@ -247,42 +247,62 @@ UI.tabResumen = function () {
 UI.plantillaOrden = 'media';
 UI.tabPlantilla = function () {
   const st = UI.st;
-  let jugadores = st.players.filter(p => p.equipo === st.userTeam);
-  jugadores.sort((a, b) => ENGINE.rendimiento(b) - ENGINE.rendimiento(a));
+  const jugadores = st.players.filter(p => p.equipo === st.userTeam)
+    .sort((a, b) => ENGINE.rendimiento(b) - ENGINE.rendimiento(a));
   const tac = st.tactics[st.userTeam];
 
+  // Datos reales de Transfermarkt (plantillas.js) emparejados por nombre
+  const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+  const reales = {};
+  for (const r of ((DATA.PLANTILLAS && DATA.PLANTILLAS[st.userTeam]) || [])) reales[norm(r.n)] = r;
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
   const filas = jugadores.map(j => {
+    const r = reales[norm(j.nombre)] || {};
     const titularIdx = tac.once.indexOf(j.id);
     const estado = j.lesion > 0 ? `<span class="estado-jug est-lesion">LESIONADO ${j.lesion}j</span>`
       : j.sancion > 0 ? `<span class="estado-jug est-sancion">SANCIONADO ${j.sancion}j</span>`
         : j.enVenta ? '<span class="estado-jug est-venta">EN VENTA</span>'
-          : titularIdx >= 0 ? '<span style="color:var(--verde)">TITULAR</span>'
+          : titularIdx >= 0 ? '<span class="tm-titular">TITULAR</span>'
             : j.forma < 45 ? '<span class="estado-jug est-forma-baja">BAJA FORMA</span>' : '';
-    return `<tr onclick="UI.detalleJugador(${j.id})" style="cursor:pointer">
-      <td>${j.pos}</td>
-      <td>${j.nombre}${titularIdx >= 0 ? ' ⭐' : ''}</td>
-      <td class="ctr">${j.edad}</td>
-      <td class="ctr media-num">${j.media}</td>
-      <td><span class="barra-media"><i style="width:${j.media}%"></i></span></td>
+    const ini = j.nombre.split(/\s+/).map(x => x[0]).join('').slice(0, 2).toUpperCase();
+    return `<tr onclick="UI.detalleJugador(${j.id})">
+      <td class="tm-num">${r.num ?? ''}</td>
+      <td>
+        <div class="tm-jugador">
+          ${r.img
+            ? `<img class="tm-foto" src="${esc(r.img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`
+            : `<span class="tm-foto tm-sinfoto">${ini}</span>`}
+          <div>
+            <div class="tm-nombre">${esc(j.nombre)}${titularIdx >= 0 ? ' ⭐' : ''}</div>
+            <div class="tm-posdet">${esc(r.posDet || j.pos)}</div>
+          </div>
+        </div>
+      </td>
+      <td class="ctr">${r.fnac ? `${esc(r.fnac)} <b>(${j.edad})</b>` : j.edad}</td>
+      <td class="ctr">${r.flag ? `<img class="tm-flag" src="${esc(r.flag)}" title="${esc(r.p || '')}" alt="${esc(r.p || '')}">` : ''}</td>
+      <td class="ctr"><span class="media-num">${j.media}</span></td>
       <td class="num">${Math.round(j.forma)}%</td>
       <td class="ctr">${'●'.repeat(Math.round(j.moral / 25)) || '○'}</td>
       <td class="num">${j.golesTemp?.[st.anio] ?? 0}</td>
       <td class="ctr">${j.contrato}a</td>
       <td class="num">${fmtM(j.salario)}</td>
+      <td class="num tm-vm">${esc(r.vm || '—')}</td>
       <td>${estado}</td>
     </tr>`;
   }).join('');
 
   const salarios = jugadores.reduce((s, p) => s + p.salario, 0);
   $('#hub-contenido').innerHTML = `
-    <div class="card">
-      <h3>PLANTILLA (${jugadores.length} JUGADORES)</h3>
+    <div class="tm-panel">
+      <div class="tm-box-header">Plantilla principal <small>${jugadores.length} jugadores · datos e imágenes de Transfermarkt</small></div>
       <div style="overflow-x:auto">
-      <table class="tabla">
-        <tr><th>POS</th><th>NOMBRE</th><th class="ctr">EDAD</th><th class="num">MED</th><th></th><th class="num">FORMA</th><th class="ctr">MORAL</th><th class="num">GOLES</th><th class="ctr">CTO</th><th class="num">FICHA/AÑO</th><th>ESTADO</th></tr>
-        ${filas}
-      </table></div>
-      <p style="margin-top:10px;color:var(--gris);font-size:12px">Masa salarial anual: <b>${fmtM(salarios)}</b> (≈${fmtM(Math.round(salarios / 4.33))}/semana) · Clic en un jugador para ver su ficha.</p>
+        <table class="tm-table">
+          <thead><tr><th>#</th><th>Jugador</th><th>F. Nacim./Edad</th><th>Nac.</th><th>MED</th><th>Forma</th><th>Moral</th><th>Goles</th><th>Cto</th><th>Ficha/año</th><th>Valor de mercado</th><th>Estado</th></tr></thead>
+          <tbody>${filas}</tbody>
+        </table>
+      </div>
+      <div class="tm-footer">Masa salarial anual: <b>${fmtM(salarios)}</b> (≈${fmtM(Math.round(salarios / 4.33))}/semana) · Clic en un jugador para ver su ficha.</div>
     </div>`;
 };
 
@@ -293,13 +313,18 @@ UI.detalleJugador = function (id) {
   const esUsuario = j.equipo === st.userTeam;
   const a = j.attrs;
   const barra = v => `<span class="barra-media" style="width:60px"><i style="width:${v}%"></i></span> ${v}`;
+  const normS = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+  const real = (j.equipo && DATA.PLANTILLAS && DATA.PLANTILLAS[j.equipo]) || [];
+  const r = real.find(x => normS(x.n) === normS(j.nombre));
   UI.modal(`
     <h3>${j.nombre}</h3>
     <div style="display:flex;gap:10px;align-items:center">
-      <div class="slot-circulo" style="border-radius:6px">${j.pos}</div>
+      ${r && r.img
+        ? `<img class="tm-foto" style="width:52px;height:52px" src="${r.img}" alt="" onerror="this.style.display='none'">`
+        : `<div class="slot-circulo" style="border-radius:6px">${j.pos}</div>`}
       <div>
         <div class="media-num" style="font-size:22px">${j.media}</div>
-        <div style="font-size:11px;color:var(--gris)">POTENCIAL ${j.potencial} · ${j.pais}</div>
+        <div style="font-size:11px;color:var(--gris)">POTENCIAL ${j.potencial} · ${j.pais}${r && r.posDet ? ' · ' + r.posDet : ''}</div>
       </div>
     </div>
     <dl>

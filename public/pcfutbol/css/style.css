@@ -260,6 +260,42 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
 .controles-tacticas { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
 .controles-tacticas label { font-size: 11px; color: var(--gris); letter-spacing: 1px; }
 
+/* ===== Panel de plantilla estilo Transfermarkt ===== */
+.tm-panel {
+  background: #fff; color: #1e2833;
+  border: 1px solid #d6dbe1; border-radius: 6px; overflow: hidden;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+.tm-box-header {
+  background: linear-gradient(180deg, #fbfcfd, #eef1f4);
+  border-bottom: 2px solid #0f62a7;
+  padding: 10px 14px; font-weight: 800; font-size: 15px; color: #052a4e;
+}
+.tm-box-header small { font-weight: 400; font-size: 12px; color: #69737d; margin-left: 8px; }
+.tm-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 980px; }
+.tm-table thead th {
+  text-align: left; font-size: 10.5px; letter-spacing: .8px; text-transform: uppercase;
+  color: #69737d; background: #f7f9fb; padding: 8px 10px;
+  border-bottom: 1px solid #e3e8ed; white-space: nowrap;
+}
+.tm-table tbody tr { cursor: pointer; border-bottom: 1px solid #eef1f4; }
+.tm-table tbody tr:nth-child(even) { background: #fafbfc; }
+.tm-table tbody tr:hover { background: #eff6fd; }
+.tm-table td { padding: 5px 10px; vertical-align: middle; white-space: nowrap; }
+.tm-num { color: #69737d; font-weight: 700; width: 30px; text-align: center; }
+.tm-jugador { display: flex; align-items: center; gap: 10px; }
+.tm-foto {
+  width: 38px; height: 38px; border-radius: 4px; object-fit: cover; object-position: top center;
+  flex: 0 0 auto; background: #e8ecf0;
+}
+.tm-sinfoto { display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #8b95a0; }
+.tm-nombre { font-weight: 700; color: #0f62a7; }
+.tm-posdet { font-size: 11px; color: #69737d; margin-top: 1px; }
+.tm-flag { height: 12px; border-radius: 1px; display: block; margin: 0 auto; }
+.tm-vm { font-weight: 700; }
+.tm-titular { color: #1c8a43; font-size: 11px; font-weight: 700; }
+.tm-footer { padding: 9px 14px; font-size: 12px; color: #69737d; background: #f7f9fb; border-top: 1px solid #e3e8ed; }
+
 /* Calendario */
 .calendario-lista { display: flex; flex-direction: column; gap: 3px; max-height: 65vh; overflow-y: auto; }
 .partido-fila {
