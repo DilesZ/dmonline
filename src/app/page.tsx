@@ -302,7 +302,7 @@ export default function Home() {
   const webItem = useMemo<LibraryItem>(
     () => ({
       id: 'pcfutbol',
-      title: 'PC Fútbol 6.0',
+      title: 'PC Fútbol 2026',
       core: 'manager',
       href: '/pcfutbol/',
       coverSrc: '/pcfutbol/cover.jpg',
