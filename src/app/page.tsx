@@ -7,6 +7,44 @@ interface DriveRom {
   name: string;
 }
 
+const SYS = 'Nintendo - Super Nintendo Entertainment System';
+
+function thumbUrl(base: string, kind: 'Named_Boxarts' | 'Named_Snaps'): string {
+  return `https://thumbnails.libretro.com/${encodeURIComponent(SYS)}/${kind}/${encodeURIComponent(base)}.png`;
+}
+
+function GameCard({ rom }: { rom: DriveRom }) {
+  const base = rom.name.replace(/\.[^.]+$/, '');
+  const [stage, setStage] = useState(0); // 0 = boxart, 1 = snapshot, 2 = placeholder
+
+  return (
+    <a
+      className="game"
+      href={`/snes_emulator.html?rom=${encodeURIComponent(
+        `/api/drive?action=file&id=${rom.id}`,
+      )}&name=${encodeURIComponent(rom.name)}`}
+    >
+      <div className="cover">
+        {stage < 2 && (
+          <img
+            src={thumbUrl(base, stage === 0 ? 'Named_Boxarts' : 'Named_Snaps')}
+            alt={base}
+            loading="lazy"
+            onError={() => setStage(stage + 1)}
+          />
+        )}
+        {stage === 2 && (
+          <div className="fallback">
+            <span>{base}</span>
+          </div>
+        )}
+        <div className="play">▶</div>
+      </div>
+      <span className="title">{base}</span>
+    </a>
+  );
+}
+
 export default function Home() {
   const [roms, setRoms] = useState<DriveRom[]>([]);
   const [driveState, setDriveState] = useState<'idle' | 'ok' | 'error'>('idle');
@@ -36,64 +74,34 @@ export default function Home() {
       </header>
 
       <main>
-        <section className="hero">
-          <h2>JUEGA EN TU NAVEGADOR</h2>
-          <p>
-            Emulador de Super Nintendo integrado con EmulatorJS.
-            Sin instalaciones, sin descargas de programas.
-          </p>
-        </section>
+        {driveState === 'idle' && <p className="status">Cargando biblioteca…</p>}
 
-        <section className="cards">
-          {/* Opción 1: ROM local */}
-          <a className="card" href="/snes_uploader.html">
-            <div className="icon">🎮</div>
-            <h3>Cargar ROM local</h3>
-            <p>Tu copia de seguridad desde el equipo. Se lee en el navegador y nunca se sube a ningún servidor.</p>
-            <span className="cta">Abrir cargador →</span>
-          </a>
-
-          {/* Opción 2: biblioteca Drive */}
-          <div className={`card ${driveState === 'ok' ? '' : 'disabled'}`}>
-            <div className="icon">☁️</div>
-            <h3>Biblioteca de Drive</h3>
-            {driveState === 'ok' && (
-              <>
-                <p>{roms.length} ROM(s) disponibles en tu carpeta compartida:</p>
-                <ul className="romlist">
-                  {roms.map((r) => (
-                    <li key={r.id}>
-                      <a
-                        href={`/snes_emulator.html?rom=${encodeURIComponent(
-                          `/api/drive?action=file&id=${r.id}`,
-                        )}&name=${encodeURIComponent(r.name)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        ▸ {r.name.replace(/\.[^.]+$/, '')}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-            {driveState === 'error' && (
-              <>
-                <p>No se pudo leer la carpeta de Drive.</p>
-                <button className="retry" onClick={() => void loadDrive()}>Reintentar</button>
-              </>
-            )}
-            {driveState === 'idle' && <p>Cargando biblioteca…</p>}
+        {driveState === 'error' && (
+          <div className="status error">
+            <p>No se pudo leer la carpeta de Drive.</p>
+            <button onClick={() => void loadDrive()}>Reintentar</button>
           </div>
-        </section>
+        )}
 
-        <footer>
-          <p>
-            Las ROMs son responsabilidad de cada usuario: utiliza únicamente copias de
-            seguridad de juegos que poseas. Este sitio no almacena ni distribuye juegos.
-          </p>
-        </footer>
+        {driveState === 'ok' && roms.length === 0 && (
+          <p className="status">La carpeta de Drive está vacía. Sube ROMs (.smc, .sfc, .zip…)</p>
+        )}
+
+        {roms.length > 0 && (
+          <section className="grid">
+            {roms.map((r) => (
+              <GameCard key={r.id} rom={r} />
+            ))}
+          </section>
+        )}
       </main>
+
+      <footer>
+        <p>
+          Las ROMs son responsabilidad de cada usuario: utiliza únicamente copias de
+          seguridad de juegos que poseas. Este sitio no almacena ni distribuye juegos.
+        </p>
+      </footer>
 
       <style jsx global>{`
         html, body {
@@ -119,43 +127,50 @@ export default function Home() {
           background: linear-gradient(90deg, #7c3aed, #c026d3);
           box-shadow: 0 0 16px rgba(192,38,211,.45);
         }
-        main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 56px 20px; }
-        .hero { text-align: center; margin-bottom: 48px; }
-        .hero h2 {
-          font-size: clamp(30px, 6vw, 54px); font-weight: 900; letter-spacing: 3px;
-          color: #fff; text-shadow: 0 0 28px rgba(139,92,246,.7);
+        main {
+          flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 36px 22px;
         }
-        .hero p { color: #a78bfa; margin-top: 12px; font-size: 15.5px; line-height: 1.7; }
-        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; }
-        .card {
-          display: block; padding: 30px 26px; border-radius: 18px; text-align: left;
-          border: 1px solid #4c1d95; color: inherit; text-decoration: none;
-          background: linear-gradient(180deg, rgba(26,15,46,.8), rgba(18,10,32,.8));
-          transition: all .18s ease; position: relative; overflow: hidden;
-        }
-        a.card:hover { transform: translateY(-4px); border-color: #a78bfa;
-          box-shadow: 0 12px 40px rgba(124,58,237,.35); }
-        .card.disabled { opacity: .75; }
-        .card .icon { font-size: 42px; filter: drop-shadow(0 0 12px rgba(167,139,250,.7)); }
-        .card h3 { font-size: 19px; font-weight: 800; letter-spacing: .8px; margin: 14px 0 8px; color: #fff; }
-        .card p { color: #9d8bc7; font-size: 13.5px; line-height: 1.65; }
-        .cta {
-          display: inline-block; margin-top: 18px; font-size: 13px; font-weight: 800;
-          letter-spacing: 1px; color: #c4b5fd;
-        }
-        a.card:hover .cta { color: #fff; text-shadow: 0 0 10px rgba(196,181,253,.9); }
-        .romlist { list-style: none; margin-top: 12px; max-height: 260px; overflow-y: auto; }
-        .romlist li { border-bottom: 1px dashed #37265c; }
-        .romlist a {
-          display: block; padding: 9px 6px; color: #d8ccf4; text-decoration: none;
-          font-size: 13.5px; transition: all .12s ease; border-radius: 6px;
-        }
-        .romlist a:hover { background: rgba(124,58,237,.18); color: #fff; }
-        .romlist em { color: #77689f; font-style: normal; font-size: 11.5px; margin-left: 6px; }
-        .retry {
-          margin-top: 12px; padding: 7px 16px; border-radius: 8px; cursor: pointer;
+        .status { text-align: center; color: #9d8bc7; margin-top: 60px; font-size: 15px; }
+        .status.error p { margin-bottom: 14px; color: #fca5a5; }
+        .status button {
+          padding: 8px 18px; border-radius: 8px; cursor: pointer;
           border: 1px solid #7c3aed; background: transparent; color: #c4b5fd; font-weight: 700;
         }
+        .grid {
+          display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+          gap: 20px 16px;
+        }
+        .game { text-decoration: none; color: inherit; display: block; }
+        .cover {
+          position: relative; aspect-ratio: 3 / 4; border-radius: 10px; overflow: hidden;
+          border: 1px solid #37265c; background: #120a20;
+          box-shadow: 0 4px 14px rgba(0,0,0,.45);
+          transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+        }
+        .game:hover .cover {
+          transform: translateY(-5px); border-color: #a78bfa;
+          box-shadow: 0 14px 34px rgba(124,58,237,.4);
+        }
+        .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .fallback {
+          width: 100%; height: 100%; display: flex; align-items: center;
+          justify-content: center; padding: 12px; text-align: center;
+          background: linear-gradient(160deg, #241145, #120a20);
+          font-size: 13px; font-weight: 700; color: #a78bfa; line-height: 1.4;
+        }
+        .play {
+          position: absolute; inset: 0; display: flex; align-items: center;
+          justify-content: center; font-size: 34px; color: #fff; opacity: 0;
+          background: rgba(11,5,20,.55); transition: opacity .16s ease;
+          text-shadow: 0 0 24px rgba(192,38,211,.9);
+        }
+        .game:hover .play { opacity: 1; }
+        .title {
+          display: block; margin-top: 9px; font-size: 12.5px; font-weight: 600;
+          color: #9d8bc7; line-height: 1.35; overflow: hidden;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        }
+        .game:hover .title { color: #e8dff5; }
         footer { text-align: center; padding: 26px 20px 34px; }
         footer p { color: #5f527f; font-size: 12px; line-height: 1.7; max-width: 640px; margin: 0 auto; }
       `}</style>
