@@ -41,25 +41,31 @@ UI.autosave = function () { if (UI.st) SEASON.guardar(UI.st, 'auto'); };
 UI.volverMenu = function () { UI.mostrarPantalla('menu'); };
 
 UI.irNuevaPartida = function () {
-  UI.equipoSeleccion = null;
-  $('#btn-empezar').disabled = true;
-  $('#info-equipo-nueva').classList.add('hidden');
-  UI.renderEquiposNueva();
   UI.mostrarPantalla('nueva');
+  UI.autoSeleccionNueva();
 };
 
 UI.setDivSeleccion = function (div) {
   UI.divSeleccion = div;
-  UI.equipoSeleccion = null;
-  $('#btn-empezar').disabled = true;
-  $('#info-equipo-nueva').classList.add('hidden');
   $('#btn-div1').classList.toggle('active', div === 1);
   $('#btn-div2').classList.toggle('active', div === 2);
+  UI.autoSeleccionNueva();
+};
+
+// Preselecciona siempre el primer equipo de la lista (Valencia CF si está en la división)
+UI.autoSeleccionNueva = function () {
+  const equipos = DATA.EQUIPOS.filter(e => e.div === UI.divSeleccion);
+  const primero = equipos.find(e => e.id === 8) || equipos[0];
+  UI.equipoSeleccion = primero.id;
+  $('#btn-empezar').disabled = false;
   UI.renderEquiposNueva();
+  UI.pintarInfoNueva(primero.id);
 };
 
 UI.renderEquiposNueva = function () {
-  const equipos = DATA.EQUIPOS.filter(e => e.div === UI.divSeleccion);
+  // El Valencia CF (id 8) siempre encabeza la lista
+  const equipos = DATA.EQUIPOS.filter(e => e.div === UI.divSeleccion)
+    .sort((a, b) => (a.id === 8 ? -1 : b.id === 8 ? 1 : 0));
   $('#lista-equipos-nueva').innerHTML = equipos.map(e => `
     <div class="eq-card ${e.id === UI.equipoSeleccion ? 'sel' : ''}" onclick="UI.selEquipoNueva(${e.id}, this)">
       ${UI.escudoHTML(e)}
@@ -72,10 +78,15 @@ UI.renderEquiposNueva = function () {
 
 UI.selEquipoNueva = function (id, el) {
   UI.equipoSeleccion = id;
-  const e = DATA.EQUIPOS.find(x => x.id === id);
   $$('#lista-equipos-nueva .eq-card').forEach(c => c.classList.remove('sel'));
   el.classList.add('sel');
   $('#btn-empezar').disabled = false;
+  UI.pintarInfoNueva(id);
+};
+
+UI.pintarInfoNueva = function (id) {
+  const e = DATA.EQUIPOS.find(x => x.id === id);
+  if (!e) return;
   const obj = DATA.OBJETIVOS(
     [...DATA.EQUIPOS.filter(x => x.div === e.div)].sort((a, b) => b.str - a.str).findIndex(x => x.id === id) + 1,
     DATA.EQUIPOS.filter(x => x.div === e.div).length
