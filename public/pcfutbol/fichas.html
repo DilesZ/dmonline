@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plantillas 2026-27 · PC Fútbol</title>
+<style>
+  :root {
+    --tm-navy: #052a4e;
+    --tm-navy-dark: #03203c;
+    --tm-blue: #0f62a7;
+    --tm-border: #d6dbe1;
+    --tm-gray-bg: #f2f5f8;
+    --tm-text: #1e2833;
+    --tm-muted: #69737d;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: #fff;
+    color: var(--tm-text);
+  }
+  a { color: var(--tm-blue); text-decoration: none; }
+
+  /* ===== NAVBAR ===== */
+  .nav {
+    background: linear-gradient(180deg, var(--tm-navy), var(--tm-navy-dark));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 10px 22px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: 0 2px 6px rgba(0,0,0,.25);
+  }
+  .nav .logo {
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: .3px;
+    white-space: nowrap;
+  }
+  .nav .logo em { font-style: normal; color: #ffd25e; }
+  .nav select {
+    flex: 0 1 340px;
+    min-width: 200px;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    background: #fff;
+    color: var(--tm-text);
+    cursor: pointer;
+  }
+  .nav .spacer { flex: 1; }
+  .nav .volver {
+    color: #cfe3ff;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .nav .volver:hover { color: #fff; text-decoration: underline; }
+
+  main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  /* ===== CABECERA DE CLUB ===== */
+  .club-header {
+    border: 1px solid var(--tm-border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 22px;
+  }
+  .club-stripe { height: 6px; display: flex; }
+  .club-stripe span { flex: 1; }
+  .club-body {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 18px 22px;
+    background: var(--tm-gray-bg);
+  }
+  .club-crest {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid var(--tm-border);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 18px; color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,.4);
+    flex: 0 0 auto;
+  }
+  .club-tit h1 { font-size: 24px; font-weight: 800; letter-spacing: -.3px; }
+  .club-meta { margin-top: 4px; font-size: 13px; color: var(--tm-muted); }
+  .club-meta b { color: var(--tm-text); }
+  .club-stats { margin-left: auto; text-align: right; font-size: 13px; color: var(--tm-muted); line-height: 1.7; }
+  .club-stats b { color: var(--tm-text); font-size: 15px; }
+
+  /* ===== BOXES ===== */
+  .box { border: 1px solid var(--tm-border); border-radius: 6px; margin-bottom: 26px; overflow: hidden; }
+  .box-header {
+    background: linear-gradient(180deg, #fbfcfd, #eef1f4);
+    border-bottom: 2px solid var(--tm-blue);
+    padding: 10px 16px;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--tm-navy);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .box-header small { font-weight: 400; color: var(--tm-muted); font-size: 12px; }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    gap: 14px;
+    padding: 14px;
+  }
+
+  /* ===== FICHA ===== */
+  .card {
+    border: 1px solid var(--tm-border);
+    border-radius: 6px;
+    background: #fff;
+    overflow: hidden;
+    transition: box-shadow .15s ease, transform .15s ease;
+  }
+  .card:hover { box-shadow: 0 4px 14px rgba(5,42,78,.16); transform: translateY(-2px); }
+  .foto {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    background: radial-gradient(circle at 50% 30%, #eef1f4, #dde3e9);
+    display: block;
+    width: 100%;
+    object-fit: cover;
+    object-position: top center;
+  }
+  .foto.placeholder::before {
+    content: attr(data-ini);
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px; font-weight: 800; color: #aab4be;
+  }
+  .dorsal {
+    position: absolute;
+    top: 8px; left: 8px;
+    min-width: 26px; height: 26px;
+    padding: 0 6px;
+    border-radius: 4px;
+    background: var(--tm-navy);
+    color: #fff;
+    font-size: 13px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pos-chip {
+    position: absolute;
+    bottom: 8px; left: 8px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px; font-weight: 800;
+    letter-spacing: .5px;
+    color: #fff;
+  }
+  .pos-POR { background: #d8a400; } .pos-DEF { background: #1e6db4; }
+  .pos-MED { background: #2e8b57; } .pos-DEL { background: #c0392b; }
+  .media-chip {
+    position: absolute;
+    top: 8px; right: 8px;
+    padding: 3px 7px;
+    border-radius: 4px;
+    background: rgba(255,255,255,.92);
+    border: 1px solid var(--tm-border);
+    font-size: 11px; font-weight: 800; color: var(--tm-navy);
+  }
+  .card-body { padding: 10px 12px 12px; }
+  .nombre {
+    font-size: 14px; font-weight: 700; line-height: 1.25;
+    color: var(--tm-text);
+    min-height: 35px;
+  }
+  .fila-dato {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--tm-muted);
+    margin-top: 5px;
+  }
+  .fila-dato img.flag { height: 11px; border: 1px solid #e2e6ea; border-radius: 1px; }
+  .fila-dato b { color: var(--tm-text); }
+  .vm { font-size: 13px; font-weight: 800; color: var(--tm-text); }
+
+  footer {
+    max-width: 1180px; margin: 0 auto;
+    padding: 18px 16px 40px;
+    font-size: 12px; color: var(--tm-muted);
+    border-top: 1px solid var(--tm-border);
+  }
+
+  @media (max-width: 640px) {
+    .club-body { flex-wrap: wrap; }
+    .club-stats { margin-left: 0; text-align: left; width: 100%; }
+    .nav select { flex-basis: auto; }
+    .cards { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">PC FÚTBOL <em>2026</em> · PLANTILLAS</div>
+  <select id="sel-club"></select>
+  <div class="spacer"></div>
+  <a class="volver" href="/pcfutbol/index.html">◀ Volver al juego</a>
+</nav>
+
+<main>
+  <div class="club-header">
+    <div class="club-stripe" id="club-stripe"></div>
+    <div class="club-body">
+      <div class="club-crest" id="club-crest"></div>
+      <div class="club-tit">
+        <h1 id="club-nombre">—</h1>
+        <div class="club-meta" id="club-meta"></div>
+      </div>
+      <div class="club-stats" id="club-stats"></div>
+    </div>
+  </div>
+
+  <div id="boxes"></div>
+</main>
+
+<footer>
+  Datos e imágenes: Transfermarkt (transfermarkt.es) · Temporada 2026-27 · Medias estimadas propias del juego PC Fútbol 2026.
+</footer>
+
+<script src="/pcfutbol/js/data.js"></script>
+<script src="/pcfutbol/js/plantillas.js"></script>
+<script>
+(function () {
+  const sel = document.getElementById('sel-club');
+  const GRUPOS = [
+    { pos: 'POR', tit: 'Porteros' },
+    { pos: 'DEF', tit: 'Defensas' },
+    { pos: 'MED', tit: 'Centrocampistas' },
+    { pos: 'DEL', tit: 'Delanteros' }
+  ];
+  const iniciales = n => n.split(/\s+/).map(p => p[0]).join('').slice(0, 2).toUpperCase();
+
+  // Selector de clubes agrupado por división
+  for (const div of [1, 2]) {
+    const og = document.createElement('optgroup');
+    og.label = div === 1 ? 'Primera División' : 'Segunda División';
+    for (const e of DATA.EQUIPOS.filter(x => x.div === div)) {
+      const op = document.createElement('option');
+      op.value = e.id;
+      op.textContent = e.nom;
+      og.appendChild(op);
+    }
+    sel.appendChild(og);
+  }
+  sel.value = 8; // Valencia CF por defecto
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+  function ficha(j) {
+    const fotoIni = esc(iniciales(j.n));
+    return `
+      <div class="card">
+        <div style="position:relative">
+          ${j.img
+            ? `<img class="foto" src="${esc(j.img)}" alt="${esc(j.n)}" loading="lazy"
+                 onerror="this.outerHTML='<span class=&quot;foto placeholder&quot; data-ini=&quot;${fotoIni}&quot;></span>'">`
+            : `<span class="foto placeholder" data-ini="${fotoIni}"></span>`}
+          ${j.num ? `<span class="dorsal">${j.num}</span>` : ''}
+          <span class="pos-chip pos-${j.pos}">${j.pos}</span>
+          <span class="media-chip">MED ${j.m ?? '?'}</span>
+        </div>
+        <div class="card-body">
+          <div class="nombre">${esc(j.n)}</div>
+          <div class="fila-dato">${esc(j.posDet || j.pos)}</div>
+          <div class="fila-dato">${j.flag ? `<img class="flag" src="${esc(j.flag)}" alt="">` : ''} ${esc(j.p || '—')}</div>
+          <div class="fila-dato">Nac.: ${esc(j.fnac || '?')} (${j.e} años)</div>
+          <div class="fila-dato"><span class="vm">${esc(j.vm || '—')}</span></div>
+        </div>
+      </div>`;
+  }
+
+  function render() {
+    const e = DATA.EQUIPOS.find(x => x.id === +sel.value);
+    const plantilla = (DATA.PLANTILLAS && DATA.PLANTILLAS[e.id]) || [];
+
+    document.getElementById('club-stripe').innerHTML =
+      e.cols.map(c => `<span style="background:${c}"></span>`).join('');
+    const crest = document.getElementById('club-crest');
+    crest.style.background = `linear-gradient(135deg, ${e.cols[0]}, ${e.cols[1]})`;
+    crest.textContent = e.abr;
+
+    document.getElementById('club-nombre').textContent = e.nom;
+    document.getElementById('club-meta').innerHTML =
+      `<b>${e.div === 1 ? 'Primera División' : 'Segunda División'}</b> · Estadio: <b>${esc(e.est)}</b> · Capacidad: <b>${e.cap.toLocaleString('es-ES')}</b> · ${esc(e.ciudad)}`;
+    const vmTotal = plantilla.reduce((s, j) => s + parseFloat(String(j.vm || '0').replace(',', '.').replace(/[^0-9.]/g, '') * (String(j.vm || '').includes('mill') ? 1e6 : String(j.vm || '').includes('mil') ? 1e3 : 1)), 0);
+    document.getElementById('club-stats').innerHTML =
+      `Jugadores: <b>${plantilla.length}</b><br>Edad media: <b>${plantilla.length ? (plantilla.reduce((s, j) => s + j.e, 0) / plantilla.length).toFixed(1) : '—'} años</b><br>Valor de mercado: <b>${vmTotal ? (vmTotal / 1e6).toFixed(2).replace('.', ',') + ' mill. €' : '—'}</b>`;
+
+    document.getElementById('boxes').innerHTML = GRUPOS.map(g => {
+      const js = plantilla.filter(j => j.pos === g.pos);
+      if (!js.length) return '';
+      return `
+        <section class="box">
+          <div class="box-header">${g.tit} <small>${js.length} jugadores</small></div>
+          <div class="cards">${js.map(ficha).join('')}</div>
+        </section>`;
+    }).join('');
+  }
+
+  sel.addEventListener('change', render);
+  render();
+})();
+</script>
+</body>
+</html>

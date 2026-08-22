@@ -148,13 +148,31 @@ function parsearPlantilla(html) {
     if (vistos.has(idTm)) continue;
     const edadM = fila.match(/(\d{2})\/(\d{2})\/(\d{4})\s*\((\d{1,2})\)/);
     if (!edadM) continue;
-    const paisM = fila.match(/<img[^>]*class="flaggenrahmen"[^>]*>/);
-    let pais = null;
-    if (paisM) { const t = paisM[0].match(/title="([^"]+)"/); if (t) pais = t[1]; }
+
+    // Datos extra para las fichas: dorsal, foto, bandera, posición detallada, valor de mercado
+    const numM = fila.match(/<div class=rn_nummer>(\d+)<\/div>/);
+    const imgM = fila.match(/data-src="(https:\/\/img\.a\.transfermarkt\.technology\/portrait\/[^"]+)"/);
+    const flagM = fila.match(/<img[^>]*class="flaggenrahmen"[^>]*>/);
+    let pais = null, flag = null;
+    if (flagM) {
+      const t = flagM[0].match(/title="([^"]+)"/); if (t) pais = t[1];
+      const s = flagM[0].match(/src="([^"]+)"/); if (s) flag = s[1];
+    }
+    const posDetM = fila.match(/<\/a>\s*<\/td>\s*<\/tr>\s*<tr>\s*<td>\s*([^<]+?)\s*</);
+    const vmM = fila.match(/class="rechts hauptlink"[^>]*>\s*<a[^>]*>\s*([^<]+?)\s*<\/a>/);
+
     const edad = parseInt(edadM[4], 10);
     if (edad < 15 || edad > 45) continue;
     vistos.add(idTm);
-    out.push({ n: nomM[2], pos: POS_CLASE['bg_' + clasePos[1]], e: edad, pais });
+    out.push({
+      n: nomM[2], pos: POS_CLASE['bg_' + clasePos[1]],
+      ...(posDetM ? { posDet: posDetM[1] } : {}),
+      e: edad, fnac: `${edadM[1]}/${edadM[2]}/${edadM[3]}`,
+      ...(numM ? { num: parseInt(numM[1], 10) } : {}),
+      ...(pais ? { p: pais } : {}), ...(flag ? { flag } : {}),
+      ...(imgM ? { img: imgM[1] } : {}),
+      ...(vmM ? { vm: vmM[1] } : {})
+    });
   }
   return out.slice(0, 30); // plantilla principal
 }
@@ -210,8 +228,8 @@ async function main() {
     }
     jugadores.sort((a, b) => ordenPos[a.pos] - ordenPos[b.pos] || b.m - a.m || a.n.localeCompare(b.n));
 
-    // Formato final del juego: n, pos, e, p (país), m
-    plantillas[equipo.id] = jugadores.map(j => ({ n: j.n, pos: j.pos, e: j.e, ...(j.pais ? { p: j.pais } : {}), m: j.m }));
+    // Formato final: n, pos, posDet, e, fnac, num, p (país), flag, img, vm, m
+    plantillas[equipo.id] = jugadores.map(j => ({ ...j, m: j.m }));
 
     equiposOk++;
     totalJugadores += jugadores.length;
@@ -224,7 +242,9 @@ async function main() {
    PC FÚTBOL 2026 - Plantillas reales temporada 2026-27
    Generado automáticamente desde Transfermarkt (fuente principal):
    https://www.transfermarkt.es
-   n: nombre · pos: POR/DEF/MED/DEL · e: edad · p: país · m: media
+   n: nombre · pos: POR/DEF/MED/DEL · posDet: posición detallada ·
+   e: edad · fnac: fecha nacimiento · num: dorsal · p: país ·
+   flag: bandera · img: foto · vm: valor de mercado · m: media
    Última sincronización: ${new Date().toISOString().slice(0, 10)}
    ============================================================ */
 
