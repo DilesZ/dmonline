@@ -14,8 +14,8 @@ interface LibraryItem {
   title: string;
   core: string;
   href: string;
-  coverSrc: string;
-  previewSrc?: string;
+  covers: string[];
+  previews: string[];
 }
 
 const SYS_BY_CORE: Record<string, string> = {
@@ -46,10 +46,27 @@ function accentOf(core: string) {
   return ACCENT[core] ?? ACCENT.snes;
 }
 
-function thumbUrl(core: string, target: string, kind: 'Named_Boxarts' | 'Named_Snaps'): string {
-  if (/^https?:\/\//.test(target)) return target;
+function thumbCandidates(core: string, target: string): string[] {
+  if (/^https?:\/\//.test(target)) return [target];
   const sys = SYS_BY_CORE[core] ?? SYS_BY_CORE.snes;
-  return `https://thumbnails.libretro.com/${encodeURIComponent(sys)}/${kind}/${encodeURIComponent(target)}.png`;
+  const enc = encodeURIComponent;
+  const urls: string[] = [];
+  const push = (kind: 'Named_Boxarts' | 'Named_Snaps' | 'Named_Titles', name: string) => {
+    const u = `https://thumbnails.libretro.com/${enc(sys)}/${kind}/${enc(name)}.png`;
+    if (!urls.includes(u)) urls.push(u);
+  };
+
+  for (const kind of ['Named_Boxarts', 'Named_Snaps', 'Named_Titles'] as const) push(kind, target);
+
+  // Variantes sin paréntesis/corchetes y con regiones típicas de No-Intro
+  const limpio = target.replace(/\s*\([^)]*\)/g, '').replace(/\s*\[[^\]]*\]/g, '').trim();
+  const variantes = new Set<string>();
+  if (limpio && limpio !== target) variantes.add(limpio);
+  if (!/\([^)]*\)/.test(target)) for (const r of ['USA', 'Europe', 'Japan', 'World']) variantes.add(`${limpio} (${r})`);
+  for (const v of variantes)
+    for (const kind of ['Named_Boxarts', 'Named_Snaps'] as const) push(kind, v);
+
+  return urls;
 }
 
 function norm(s: string): string {
@@ -86,9 +103,25 @@ function toLibraryItem(rom: DriveRom, biosId?: string | null): LibraryItem {
     title,
     core,
     href: buildRomHref(rom, biosId),
-    coverSrc: thumbUrl(core, coverTarget, 'Named_Boxarts'),
-    previewSrc: thumbUrl(core, coverTarget, 'Named_Snaps'),
+    covers: thumbCandidates(core, coverTarget),
+    previews: thumbCandidates(core, coverTarget),
   };
+}
+
+// Imagen que recorre una lista de URLs hasta encontrar una que cargue
+function Thumb({ sources, alt, className }: { sources: string[]; alt: string; className?: string }) {
+  const [i, setI] = useState(0);
+  useEffect(() => setI(0), [sources.join('|')]);
+  if (i >= sources.length) return null;
+  return (
+    <img
+      src={sources[i]}
+      alt={alt}
+      className={className}
+      loading="lazy"
+      onError={() => setI((v) => v + 1)}
+    />
+  );
 }
 
 /* ============================================================
@@ -98,8 +131,7 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
   const [active, setActive] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
   const [paused, setPaused] = useState(false);
-  const [coverOk, setCoverOk] = useState(true);
-  const [previewOk, setPreviewOk] = useState(true);
+  const [crtIdx, setCrtIdx] = useState(0);
   const timerRef = useRef<number | null>(null);
 
   const go = useCallback(
@@ -108,8 +140,7 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
         const next = ((index % items.length) + items.length) % items.length;
         if (next !== cur) {
           setPrev(cur);
-          setCoverOk(true);
-          setPreviewOk(true);
+          setCrtIdx(0);
         }
         return next;
       });
@@ -128,8 +159,7 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
     timerRef.current = window.setInterval(() => {
       setActive((cur) => {
         setPrev(cur);
-        setCoverOk(true);
-        setPreviewOk(true);
+        setCrtIdx(0);
         return (cur + 1) % items.length;
       });
     }, 6000);
@@ -160,6 +190,10 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
 
   if (!items.length) return null;
   const current = items[active] ?? items[0];
+  const crtSources = useMemo(
+    () => [...current.previews, ...current.covers].filter((u, i, a) => a.indexOf(u) === i),
+    [current],
+  );
   const acc = accentOf(current.core);
   const label = CORE_LABEL[current.core] ?? current.core.toUpperCase();
   const num = String(active + 1).padStart(2, '0');
@@ -175,15 +209,9 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
       {/* Fondo ambiental: carátula desenfocada del juego activo */}
       <div className="stage-bg" aria-hidden="true">
         {prev !== null && items[prev] && (
-          <img key={'p' + prev} src={items[prev].coverSrc} alt="" className="bg-img bg-out" />
+          <Thumb key={'p' + prev} sources={items[prev].covers} alt="" className="bg-img bg-out" />
         )}
-        <img
-          key={current.id}
-          src={current.coverSrc}
-          alt=""
-          className="bg-img bg-in"
-          onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }}
-        />
+        <Thumb key={current.id} sources={current.covers} alt="" className="bg-img bg-in" />
         <div className="bg-veil" />
       </div>
 
@@ -210,7 +238,7 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
                 >
                   <span className="rail-num">{String(index + 1).padStart(2, '0')}</span>
                   <span className="rail-thumb">
-                    <img src={item.coverSrc} alt="" loading="lazy" />
+                    <Thumb sources={item.covers} alt="" />
                   </span>
                   <span className="rail-title">{item.title}</span>
                   <span className="rail-core">{CORE_LABEL[item.core] ?? item.core}</span>
@@ -238,21 +266,12 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
 
           <div className="crt" key={'c' + active}>
             <div className="crt-inner">
-              {previewOk && (current.previewSrc || current.coverSrc) ? (
+              {crtIdx < crtSources.length ? (
                 <img
-                  src={current.previewSrc ?? current.coverSrc}
+                  src={crtSources[crtIdx]}
                   alt={`Pantalla de ${current.title}`}
-                  onError={() => {
-                    if (current.previewSrc && current.previewSrc !== current.coverSrc) setPreviewOk(false);
-                    else setPreviewOk(false);
-                  }}
-                />
-              ) : coverOk ? (
-                <img
-                  src={current.coverSrc}
-                  alt={`Carátula de ${current.title}`}
-                  onError={() => setCoverOk(false)}
-                  className="crt-cover"
+                  onError={() => setCrtIdx((v) => v + 1)}
+                  className={crtIdx >= current.previews.length ? 'crt-cover' : undefined}
                 />
               ) : (
                 <div className="crt-fallback"><span>{current.title}</span></div>
@@ -305,8 +324,8 @@ export default function Home() {
       title: 'PC Fútbol 2026',
       core: 'manager',
       href: '/pcfutbol/',
-      coverSrc: '/pcfutbol/cover.jpg',
-      previewSrc: '/pcfutbol/cover.jpg',
+      covers: ['/pcfutbol/cover.jpg'],
+      previews: ['/pcfutbol/cover.jpg'],
     }),
     [],
   );
