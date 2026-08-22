@@ -8,7 +8,7 @@ UI.st = null;              // estado de la partida actual
 UI.divSeleccion = 1;
 UI.equipoSeleccion = null;
 UI.tabActual = 'resumen';
-UI.fichajesSub = 'mercado';
+UI.fichajesSub = 'transferibles';
 
 const $ = sel => document.querySelector(sel);
 const $$ = sel => [...document.querySelectorAll(sel)];
@@ -348,6 +348,8 @@ UI.detalleJugador = function (id) {
     ${esUsuario ? `<div class="modal-acciones">
       <button class="btn ${j.enVenta ? '' : 'btn-peligro'}" onclick="UI.toggleVenta(${j.id});UI.cerrarModal();UI.renderTab()">
         ${j.enVenta ? 'QUITAR DE LA VENTA' : 'PONER EN VENTA'}</button>
+      <button class="btn btn-sec" onclick="UI.toggleCesible(${j.id});UI.cerrarModal();UI.renderTab()">
+        ${j.cedible ? 'QUITAR DE CESIBLES' : 'DECLARAR CESIBLE'}</button>
       <button class="btn btn-sec" onclick="UI.cerrarModal()">CERRAR</button>
     </div>` : `<div class="modal-acciones"><button class="btn btn-sec" onclick="UI.cerrarModal()">CERRAR</button></div>`}`);
 };
@@ -356,6 +358,12 @@ UI.toggleVenta = function (id) {
   const j = UI.st.players.find(p => p.id === id);
   if (j) j.enVenta = !j.enVenta;
   UI.autosave();
+};
+
+UI.toggleCesible = function (id) {
+  const j = UI.st.players.find(p => p.id === id);
+  if (j) j.cedible = !j.cedible;
+  UI.autosave(UI.st);
 };
 
 /* ---------- TAB TÁCTICAS ---------- */
@@ -679,10 +687,16 @@ UI.tabClasificacion = function () {
 /* ---------- TAB FICHAJES ---------- */
 UI.tabFichajes = function () {
   const st = UI.st;
+  st.ofertasEnviadas = st.ofertasEnviadas || [];
   const sub = UI.fichajesSub;
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const pendienteDe = pid => st.ofertasEnviadas.some(o => o.estado === 'pendiente' && o.jugadorId === pid);
+  const btnMercado = (j, txt, fn, cls = '') => pendienteDe(j.id)
+    ? '<button class="btn btn-mini" disabled>⏳ EN CURSO</button>'
+    : `<button class="btn btn-mini ${cls}" onclick="${fn}(${j.id})">${txt}</button>`;
   let cuerpo = '';
 
-  if (sub === 'mercado') {
+  if (sub === 'transferibles') {
     const mercado = st.players.filter(p => p.equipo && p.equipo !== st.userTeam && p.enVenta)
       .sort((a, b) => b.media - a.media).slice(0, 40);
     cuerpo = `<table class="tabla">
@@ -693,21 +707,57 @@ UI.tabFichajes = function () {
         <td class="num media-num">${j.media}</td>
         <td>${st.teams[j.equipo].abr}</td>
         <td class="num">${fmtM(j.valor)}</td>
-        <td><button class="btn btn-mini" onclick="UI.dialogoOferta(${j.id})">HACER OFERTA</button></td>
-      </tr>`).join('') || '<tr><td colspan="7" style="color:var(--gris)">No hay jugadores en venta ahora mismo. Vuelve tras la próxima jornada.</td></tr>'}
+        <td>${btnMercado(j, 'HACER OFERTA', 'UI.dialogoOfertaTraspaso')}</td>
+      </tr>`).join('') || '<tr><td colspan="7" style="color:var(--gris)">No hay jugadores transferibles ahora mismo. Vuelve tras la próxima jornada.</td></tr>'}
+    </table>`;
+  } else if (sub === 'cedibles') {
+    const cedibles = st.players.filter(p => p.equipo && p.equipo !== st.userTeam && p.cedible)
+      .sort((a, b) => b.media - a.media);
+    cuerpo = `<table class="tabla">
+      <tr><th>NOMBRE</th><th class="ctr">POS</th><th class="ctr">EDAD</th><th class="num">MED</th><th>EQUIPO</th><th class="num">SALARIO ACTUAL</th><th></th></tr>
+      ${cedibles.map(j => `<tr>
+        <td style="cursor:pointer" onclick="UI.detalleJugador(${j.id})">${j.nombre}</td>
+        <td class="ctr">${j.pos}</td><td class="ctr">${j.edad}</td>
+        <td class="num media-num">${j.media}</td>
+        <td>${st.teams[j.equipo].abr}</td>
+        <td class="num">${fmtM(j.salario)}</td>
+        <td>${btnMercado(j, 'PEDIR CESIÓN', 'UI.dialogoCesion')}</td>
+      </tr>`).join('') || '<tr><td colspan="7" style="color:var(--gris)">Ningún club ha declarado cesibles jugadores por ahora.</td></tr>'}
     </table>`;
   } else if (sub === 'libres') {
     const libres = st.libres.slice().sort((a, b) => b.media - a.media);
     cuerpo = `<table class="tabla">
-      <tr><th>NOMBRE</th><th class="ctr">POS</th><th class="ctr">EDAD</th><th class="num">MED</th><th class="num">FICHA PEDIDA</th><th></th></tr>
-      ${libres.map(j => `<tr>
+      <tr><th>NOMBRE</th><th class="ctr">POS</th><th class="ctr">EDAD</th><th class="num">MED</th><th class="num">FICHA QUE PIDE</th><th></th></tr>
+      ${libres.map(j => {
+        const e = SEASON.exigenciasLibre(j);
+        return `<tr>
         <td style="cursor:pointer" onclick="UI.detalleJugador(${j.id})">${j.nombre}</td>
         <td class="ctr">${j.pos}</td><td class="ctr">${j.edad}</td>
         <td class="num media-num">${j.media}</td>
-        <td class="num">${fmtM(Math.round(j.salario * 1.05))}</td>
-        <td><button class="btn btn-mini" onclick="UI.dialogoLibre(${j.id})">FICHAR LIBRE</button></td>
-      </tr>`).join('')}</table>`;
-  } else if (sub === 'ofertas') {
+        <td class="num">≈ ${fmtM(e.ficha)}</td>
+        <td>${btnMercado(j, 'NEGOCIAR', 'UI.dialogoLibre')}</td>
+      </tr>`;
+      }).join('')}</table>`;
+  } else if (sub === 'misofertas') {
+    const tipoTxt = { libre: 'AGENTE LIBRE', club: 'TRASPASO', cesion: 'CESIÓN' };
+    cuerpo = st.ofertasEnviadas.length ? st.ofertasEnviadas.map(of => {
+      const j = st.players.find(p => p.id === of.jugadorId) || st.libres.find(p => p.id === of.jugadorId);
+      if (!j) return '';
+      const badge = of.estado === 'pendiente'
+        ? `<span style="color:var(--amarillo)">⏳ Esperando respuesta (responde J${of.jornadaEnvio + 1})</span>`
+        : of.estado === 'aceptada' ? '<span style="color:var(--verde)">✅ ACEPTADA</span>'
+          : of.estado === 'contraoferta' ? '<span style="color:var(--cyan)">🔄 CONTRAOFERTA</span>'
+            : '<span style="color:var(--rojo)">❌ RECHAZADA</span>';
+      return `<div class="oferta-caja">
+        <span><b>${esc(j.nombre)}</b> · ${tipoTxt[of.tipo] || of.tipo} · ${badge}
+          <br><small style="color:var(--gris)">${esc(of.respuesta || '')}</small></span>
+        <span>
+          ${of.estado === 'contraoferta' ? `<button class="btn btn-principal btn-mini" onclick="UI.mejorarOferta(${of.id})">MEJORAR OFERTA</button>` : ''}
+          ${of.estado !== 'pendiente' ? `<button class="btn btn-mini" onclick="UI.descartarOferta(${of.id})">DESCARTAR</button>` : ''}
+        </span>
+      </div>`;
+    }).join('') : '<p style="color:var(--gris)">No has enviado ninguna oferta. Las respuestas llegan una jornada después de enviarlas.</p>';
+  } else if (sub === 'recibidas') {
     cuerpo = (st.ofertasRecibidas.length ? st.ofertasRecibidas.map((o, i) => {
       const j = st.players.find(p => p.id === o.jugadorId);
       if (!j) return '';
@@ -716,67 +766,163 @@ UI.tabFichajes = function () {
     }).join('') : '<p style="color:var(--gris)">No hay ofertas. Pon jugadores EN VENTA desde Plantilla para recibir propuestas.</p>');
   }
 
+  const nPend = st.ofertasEnviadas.filter(o => o.estado === 'pendiente').length;
+  const nContra = st.ofertasEnviadas.filter(o => o.estado === 'contraoferta').length;
   $('#hub-contenido').innerHTML = `
     <div class="card">
       <div class="tabs-mini">
-        <button class="btn-tab ${sub === 'mercado' ? 'active' : ''}" onclick="UI.fichajesSub='mercado';UI.renderTab()">MERCADO</button>
+        <button class="btn-tab ${sub === 'transferibles' ? 'active' : ''}" onclick="UI.fichajesSub='transferibles';UI.renderTab()">TRANSFERIBLES</button>
+        <button class="btn-tab ${sub === 'cedibles' ? 'active' : ''}" onclick="UI.fichajesSub='cedibles';UI.renderTab()">CESIBLES</button>
         <button class="btn-tab ${sub === 'libres' ? 'active' : ''}" onclick="UI.fichajesSub='libres';UI.renderTab()">AGENTES LIBRES</button>
-        <button class="btn-tab ${sub === 'ofertas' ? 'active' : ''}" onclick="UI.fichajesSub='ofertas';UI.renderTab()">OFERTAS RECIBIDAS (${st.ofertasRecibidas.length})</button>
+        <button class="btn-tab ${sub === 'misofertas' ? 'active' : ''}" onclick="UI.fichajesSub='misofertas';UI.renderTab()">MIS OFERTAS (${nPend + nContra})</button>
+        <button class="btn-tab ${sub === 'recibidas' ? 'active' : ''}" onclick="UI.fichajesSub='recibidas';UI.renderTab()">RECIBIDAS (${st.ofertasRecibidas.length})</button>
         <span style="margin-left:auto;color:var(--cyan)">PRESUPUESTO: <b>${fmtM(st.finanzas.presup)}</b></span>
       </div>
       <div style="overflow-x:auto">${cuerpo}</div>
+      <p style="margin-top:8px;color:var(--gris);font-size:12px">Toda oferta tarda <b>1 jornada</b> en recibir respuesta del agente o del club. Si te hacen una contraoferta podrás mejorarla.</p>
     </div>`;
 };
 
-UI.dialogoOferta = function (id) {
-  const st = UI.st;
-  const j = st.players.find(p => p.id === id);
-  const minimo = Math.round(j.valor * 0.85 / 10000) * 10000;
-  UI.modal(`
-    <h3>OFERTA POR ${j.nombre.toUpperCase()}</h3>
-    <p style="font-size:13px">${st.teams[j.equipo].nom} · ${j.pos} · ${j.edad} años · Media <b>${j.media}</b> · Valor ${fmtM(j.valor)}</p>
-    <p style="color:var(--gris);font-size:12px;margin-top:6px">Oferta mínima: ${fmtM(minimo)}. Presupuesto disponible: ${fmtM(st.finanzas.presup)}. El jugador pedirá ≈${fmtM(Math.round(Math.max(j.salario * 1.15, j.valor * 0.0008)))} por temporada.</p>
-    <div class="fila-form"><label>CANTIDAD:</label><input type="number" id="oferta-importe" step="100000" min="${minimo}" value="${j.valor}"></div>
-    <div class="modal-acciones">
-      <button class="btn btn-sec" onclick="UI.cerrarModal()">CANCELAR</button>
-      <button class="btn btn-principal" onclick="UI.enviarOferta(${id})">ENVIAR OFERTA</button>
-    </div>`);
+/* ----- Ventanas de negociación ----- */
+UI.terminosPersonalesHTML = function (pfx, e, t) {
+  const aniosSel = n => [1, 2, 3, 4, 5].map(a =>
+    `<option value="${a}" ${(t.anios || e.anios) === a ? 'selected' : ''}>${a}</option>`).join('');
+  return `
+    <div class="fila-form"><label>PRIMA DE FICHAJE:</label><input type="number" id="${pfx}-prima" step="50000" min="0" value="${t.prima ?? 0}"></div>
+    <div class="fila-form"><label>FICHA ANUAL:</label><input type="number" id="${pfx}-ficha" step="25000" value="${t.ficha ?? e.ficha}"></div>
+    <div class="fila-form"><label>AÑOS DE CONTRATO:</label><select id="${pfx}-anios">${aniosSel()}</select></div>
+    <div class="fila-form"><label>CLÁUSULA (0 = SIN ELLA):</label><input type="number" id="${pfx}-clausula" step="500000" min="0" value="${t.clausula ?? Math.round(e.clausula * 0.8)}"></div>
+    <div class="fila-form"><label>BONO POR PARTIDO:</label><input type="number" id="${pfx}-bono" step="1000" min="0" value="${t.bonusPartido ?? 0}"></div>
+    <div class="fila-form"><label>PRIMA POR GOL:</label><input type="number" id="${pfx}-gol" step="1000" min="0" value="${t.primaGol ?? 0}"></div>
+    <div class="fila-form"><label>LIBERTAD SI DESCIENDE:</label><input type="checkbox" id="${pfx}-desc" ${t.libertadDesc ? 'checked' : ''}></div>`;
 };
 
-UI.enviarOferta = function (id) {
-  const importe = parseInt($('#oferta-importe').value, 10);
-  if (!importe || importe <= 0) return;
-  const r = SEASON.ficharEquipo(UI.st, id, importe);
-  UI.cerrarModal();
-  UI.aviso(r.ok ? '✅ ' + r.msg : '❌ ' + r.msg);
-  if (r.ok) UI.renderTab();
+UI.leerTerminosPersonales = function (pfx) {
+  return {
+    prima: parseInt($('#' + pfx + '-prima').value, 10) || 0,
+    ficha: parseInt($('#' + pfx + '-ficha').value, 10) || 0,
+    anios: parseInt($('#' + pfx + '-anios').value, 10) || 3,
+    clausula: parseInt($('#' + pfx + '-clausula').value, 10) || 0,
+    bonusPartido: parseInt($('#' + pfx + '-bono').value, 10) || 0,
+    primaGol: parseInt($('#' + pfx + '-gol').value, 10) || 0,
+    libertadDesc: $('#' + pfx + '-desc').checked
+  };
 };
+
+// Envía (o reenvía mejorando) una oferta
+function enviarYavisar(st, oferta, ofIdPrevia) {
+  const r = SEASON.enviarOfertaUsuario(st, oferta);
+  if (r.ok && ofIdPrevia) st.ofertasEnviadas = st.ofertasEnviadas.filter(o => o.id !== ofIdPrevia);
+  UI.cerrarModal();
+  UI.aviso(r.ok ? '📨 ' + r.msg : '❌ ' + r.msg);
+  if (r.ok) UI.renderTab();
+}
 
 UI.dialogoLibre = function (id) {
   const st = UI.st;
   const j = st.libres.find(p => p.id === id);
   if (!j) return;
-  const exigido = Math.round(j.salario * 1.05);
+  const e = SEASON.exigenciasLibre(j);
   UI.modal(`
-    <h3>FICHAR AGENTE LIBRE</h3>
-    <p style="font-size:13px">${j.nombre} · ${j.pos} · ${j.edad} años · Media <b>${j.media}</b> · Pide <b>${fmtM(exigido)}</b>/año mínimo</p>
-    <div class="fila-form"><label>FICHA ANUAL:</label><input type="number" id="libre-ficha" step="50000" min="${exigido}" value="${exigido}"></div>
-    <div class="fila-form"><label>AÑOS CONTRATO:</label>
-      <select id="libre-anios"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select>
-    </div>
+    <h3>NEGOCIACIÓN — AGENTE LIBRE</h3>
+    <p style="font-size:13px">${j.nombre} · ${j.pos} · ${j.edad} años · Media <b>${j.media}</b> · Valor ${fmtM(j.valor)}</p>
+    <p style="color:var(--gris);font-size:12px;margin-top:6px">El agente pide ≈<b>${fmtM(e.ficha)}</b>/año, prima ≈${fmtM(e.prima)} y cláusula ≈${fmtM(e.clausula)}. Los bonos y la libertad por descenso suman atractivo; los contratos largos exigen mejor ficha.</p>
+    ${UI.terminosPersonalesHTML('lf', e, {})}
     <div class="modal-acciones">
       <button class="btn btn-sec" onclick="UI.cerrarModal()">CANCELAR</button>
-      <button class="btn btn-principal" onclick="UI.enviarLibre(${id})">FIRMAR</button>
+      <button class="btn btn-principal" onclick="UI.enviarLibre(${id})">ENVIAR PROPUESTA 📨</button>
     </div>`);
 };
 
 UI.enviarLibre = function (id) {
-  const ficha = parseInt($('#libre-ficha').value, 10);
-  const anios = parseInt($('#libre-anios').value, 10);
-  const r = SEASON.ficharLibre(UI.st, id, ficha, anios);
-  UI.cerrarModal();
-  UI.aviso(r.ok ? '✅ ' + r.msg : '❌ ' + r.msg);
-  if (r.ok) UI.renderTab();
+  const terminos = UI.leerTerminosPersonales('lf');
+  enviarYavisar(UI.st, { tipo: 'libre', jugadorId: id, terminos });
+};
+
+UI.dialogoOfertaTraspaso = function (id, previa) {
+  const st = UI.st;
+  const j = st.players.find(p => p.id === id);
+  if (!j) return;
+  const e = SEASON.exigenciasLibre(j);
+  const pide = SEASON.pideClub(st, j);
+  const t = previa ? previa.contra || previa.terminos : {};
+  const plantilla = st.players.filter(p => p.equipo === st.userTeam && p.id !== id)
+    .sort((a, b) => ENGINE.calcValor(b) - ENGINE.calcValor(a)).slice(0, 14);
+  const incluidosSet = new Set(t.incluidos || []);
+  UI.modal(`
+    <h3>OFERTA AL CLUB — ${st.teams[j.equipo].nom.toUpperCase()}</h3>
+    <p style="font-size:13px">${j.nombre} · ${j.pos} · ${j.edad} años · Media <b>${j.media}</b> · Valor ${fmtM(j.valor)}${j.enVenta ? ' · <b style="color:var(--verde)">TRANSFERIBLE</b>' : ''}</p>
+    <p style="color:var(--gris);font-size:12px;margin-top:6px">El club pide ≈<b>${fmtM(pide)}</b>. Fraccionar el pago reduce un poco el atractivo; incluir jugadores suma su valor (×0,85).</p>
+    <div class="fila-form"><label>IMPORTE TOTAL:</label><input type="number" id="oc-importe" step="100000" min="0" value="${t.importe ?? Math.max(pide, Math.round(j.valor * 1.1 / 10000) * 10000)}"></div>
+    <div class="fila-form"><label>PAGO FRACCIONADO:</label>
+      <select id="oc-pagos">${[1, 2, 3, 4, 5].map(n => `<option value="${n}" ${(t.pagos || 1) === n ? 'selected' : ''}>${n === 1 ? 'Al contado' : `En ${n} años`}</option>`).join('')}</select>
+    </div>
+    <div class="fila-form"><label style="align-self:flex-start">INCLUIR JUGADORES:</label>
+      <div style="max-height:130px;overflow-y:auto;border:1px solid var(--borde);padding:4px;width:100%">
+        ${plantilla.map(p => `<label style="display:flex;gap:6px;font-size:12px;padding:2px 0">
+          <input type="checkbox" class="oc-incl" value="${p.id}" ${incluidosSet.has(p.id) ? 'checked' : ''}>
+          <span style="flex:1">${p.nombre}</span><span style="color:var(--gris)">${p.pos} · ${fmtM(ENGINE.calcValor(p))}</span></label>`).join('')}
+      </div>
+    </div>
+    <p style="margin-top:8px;color:var(--cyan);font-size:12px">CONTRATO DEL JUGADOR (el agente pide ≈${fmtM(e.ficha)}/año):</p>
+    ${UI.terminosPersonalesHTML('oc', e, t)}
+    <div class="modal-acciones">
+      <button class="btn btn-sec" onclick="UI.cerrarModal()">CANCELAR</button>
+      <button class="btn btn-principal" onclick="UI.enviarOfertaClub(${id}${previa ? ',' + previa.id : ''})">ENVIAR OFERTA 📨</button>
+    </div>`);
+};
+
+UI.enviarOfertaClub = function (id, ofIdPrevia) {
+  const terminos = UI.leerTerminosPersonales('oc');
+  terminos.importe = parseInt($('#oc-importe').value, 10) || 0;
+  terminos.pagos = parseInt($('#oc-pagos').value, 10) || 1;
+  terminos.incluidos = $$('.oc-incl:checked').map(c => +c.value);
+  if (!terminos.importe) { UI.aviso('❌ Indica el importe ofrecido al club.'); return; }
+  enviarYavisar(UI.st, { tipo: 'club', jugadorId: id, terminos }, ofIdPrevia);
+};
+
+UI.dialogoCesion = function (id, previa) {
+  const st = UI.st;
+  const j = st.players.find(p => p.id === id);
+  if (!j) return;
+  const pedido = Math.round(Math.max(50000, j.valor * 0.05) / 1000) * 1000;
+  const t = previa ? previa.contra || previa.terminos : {};
+  UI.modal(`
+    <h3>PETICIÓN DE CESIÓN — ${st.teams[j.equipo].nom.toUpperCase()}</h3>
+    <p style="font-size:13px">${j.nombre} · ${j.pos} · ${j.edad} años · Media <b>${j.media}</b> · Salario actual ${fmtM(j.salario)}</p>
+    <p style="color:var(--gris);font-size:12px;margin-top:6px">El club pide ≈<b>${fmtM(pedido)}</b> de prima por la cesión (hasta final de temporada). Puedes acordar qué parte del salario pagas tú.</p>
+    <div class="fila-form"><label>PRIMA POR LA CESIÓN:</label><input type="number" id="cs-prima" step="10000" min="0" value="${t.prima ?? pedido}"></div>
+    <div class="fila-form"><label>SALARIO A TU CARGO:</label>
+      <select id="cs-salario">
+        ${[[100, '100% (completo)'], [75, '75%'], [50, '50%']].map(([v, l]) => `<option value="${v}" ${(t.pctSalario || 100) === v ? 'selected' : ''}>${l}</option>`).join('')}
+      </select>
+    </div>
+    <div class="modal-acciones">
+      <button class="btn btn-sec" onclick="UI.cerrarModal()">CANCELAR</button>
+      <button class="btn btn-principal" onclick="UI.enviarCesion(${id}${previa ? ',' + previa.id : ''})">SOLICITAR CESIÓN 📨</button>
+    </div>`);
+};
+
+UI.enviarCesion = function (id, ofIdPrevia) {
+  const terminos = {
+    prima: parseInt($('#cs-prima').value, 10) || 0,
+    pctSalario: parseInt($('#cs-salario').value, 10) || 100
+  };
+  enviarYavisar(UI.st, { tipo: 'cesion', jugadorId: id, terminos }, ofIdPrevia);
+};
+
+UI.mejorarOferta = function (ofId) {
+  const of = UI.st.ofertasEnviadas.find(o => o.id === ofId);
+  if (!of) return;
+  if (of.tipo === 'libre') UI.dialogoLibre(of.jugadorId);
+  else if (of.tipo === 'club') UI.dialogoOfertaTraspaso(of.jugadorId, of);
+  else if (of.tipo === 'cesion') UI.dialogoCesion(of.jugadorId, of);
+};
+
+UI.descartarOferta = function (ofId) {
+  UI.st.ofertasEnviadas = UI.st.ofertasEnviadas.filter(o => o.id !== ofId);
+  UI.autosave(UI.st);
+  UI.renderTab();
 };
 
 UI.aceptarVenta = function (i) {

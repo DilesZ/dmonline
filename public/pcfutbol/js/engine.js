@@ -564,10 +564,17 @@ ENGINE.simularPartido = function (st, eqH, eqA, esCopa) {
   for (const j of [...onceH, ...onceA]) {
     j.partidos++;
     j.forma = clamp(j.forma - rndInt(8, 14), 20, 100);
+    let golesP = 0;
     if (j._golesPartido) {
+      golesP = j._golesPartido;
       j.golesTemp[st.anio] = (j.golesTemp[st.anio] ?? 0) + j._golesPartido;
       j.goles = (j.goles ?? 0) + j._golesPartido;
       delete j._golesPartido;
+    }
+    // Bonos por partido/gole del usuario (se pagan en el cierre semanal)
+    if (j.equipo === st.userTeam && st.finanzas && (j.bonusPartido || j.primaGol)) {
+      const bono = (j.bonusPartido || 0) + (j.primaGol || 0) * golesP;
+      if (bono > 0) st.finanzas.bonos = (st.finanzas.bonos || 0) + bono;
     }
     if (j._asisPartido) { j.asist += j._asisPartido; delete j._asisPartido; }
     if (j._expulsado) { j.sancion = rndInt(1, 3); delete j._expulsado; }

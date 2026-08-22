@@ -151,6 +151,9 @@ SEASON.cerrarJornada = function (st) {
 
   st.jornada++;
 
+  // Resolver ofertas del usuario enviadas hace 1 jornada (agentes/clubes tardan en contestar)
+  SEASON.procesarOfertas(st);
+
   // Fin de temporada
   const maxJ = Math.max(st.fixtures[1].length, st.fixtures[2].length);
   const copaAcabada = !st.copa || st.copa.finalizada || st.copa.ronda >= SEASON.COPA_JORNADAS.length;
@@ -187,6 +190,10 @@ SEASON.finanzasSemanales = function (st) {
   ENGINE.movimientoFinanzas(st, st.patrocinador, 'Patrocinador y TV');
   ENGINE.movimientoFinanzas(st, -Math.round(salarios / 4.33), 'Nóminas de la plantilla');
   ENGINE.movimientoFinanzas(st, -35000, 'Mantenimiento del estadio');
+  if (st.finanzas.bonos > 0) {
+    ENGINE.movimientoFinanzas(st, -st.finanzas.bonos, 'Bonos por partidos y goles');
+    st.finanzas.bonos = 0;
+  }
   st.teams[st.userTeam].saldo = st.finanzas.saldo;
 };
 
@@ -196,7 +203,7 @@ SEASON.finanzasSemanales = function (st) {
 SEASON.mercadoIA = function (st) {
   const equipos = Object.values(st.teams);
 
-  // Poner/quitar jugadores en venta
+  // Poner/quitar jugadores en venta y declarar cesibles
   for (const t of equipos) {
     if (t.id === st.userTeam) continue;
     if (Math.random() < 0.09) {
@@ -206,6 +213,15 @@ SEASON.mercadoIA = function (st) {
     if (Math.random() < 0.05) {
       const enVenta = st.players.filter(p => p.equipo === t.id && p.enVenta);
       if (enVenta.length && Math.random() < 0.5) pick(enVenta).enVenta = false;
+    }
+    // Cesibles: jóvenes con poca participación que el club deja salir a préstamo
+    if (Math.random() < 0.08) {
+      const candidatos = st.players.filter(p => p.equipo === t.id && !p.cedible && !p.enVenta && p.edad <= 24 && p.lesion === 0);
+      if (candidatos.length) pick(candidatos).cedible = true;
+    }
+    if (Math.random() < 0.06) {
+      const cedibles = st.players.filter(p => p.equipo === t.id && p.cedible);
+      if (cedibles.length && Math.random() < 0.5) pick(cedibles).cedible = false;
     }
   }
 
@@ -286,6 +302,28 @@ SEASON.siguienteTemporada = function (st) {
   st.anio++;
   st.jornada = 1;
   st.finTemporada = false;
+
+  // Cobro de plazas fraccionadas de fichajes que vencen esta temporada
+  st.finanzas.pagos = st.finanzas.pagos || [];
+  for (const pago of st.finanzas.pagos.filter(p => p.anio === st.anio)) {
+    ENGINE.movimientoFinanzas(st, -pago.importe, `Plaza de fichaje: ${pago.desc}`);
+  }
+  st.finanzas.pagos = st.finanzas.pagos.filter(p => p.anio > st.anio);
+
+  // Devolver cesiones finalizadas
+  for (const j of st.players) {
+    if (j.cesionDe && j.cesionHastaAnio < st.anio) {
+      const origen = st.teams[j.cesionDe];
+      ENGINE.noticia(st, `↩️ ${j.nombre} vuelve al ${origen?.nom ?? 'su club'} tras su cesión.`);
+      if (j.salarioOriginal != null) { j.salario = j.salarioOriginal; delete j.salarioOriginal; }
+      j.equipo = j.cesionDe;
+      delete j.cesionDe; delete j.cesionHastaAnio;
+      j.enVenta = false; j.cedible = false;
+    }
+  }
+
+  // Las ofertas pendientes caducan con el mercado de verano
+  st.ofertasEnviadas = [];
 
   // Ascensos/descensos
   const tabla1 = ENGINE.clasificacion(st, 1);
@@ -387,46 +425,253 @@ SEASON.siguienteTemporada = function (st) {
 };
 
 /* ============================================================
-   FICHAJES DEL USUARIO
+   FICHAJES DEL USUARIO — negociación con respuesta diferida
+   Las ofertas tardan 1 jornada en recibir respuesta.
    ============================================================ */
-SEASON.ficharLibre = function (st, jugadorId, salarioOferta, contratoAnios) {
-  const j = st.libres.find(p => p.id === jugadorId);
-  if (!j) return { ok: false, msg: 'El jugador ya no está disponible.' };
-  const exigido = Math.round(j.salario * 1.05);
-  if (salarioOferta < exigido) return { ok: false, msg: `${j.nombre} pide al menos ${fmtM(exigido)} por temporada.` };
-  j.equipo = st.userTeam;
-  j.salario = salarioOferta;
-  j.contrato = contratoAnios;
-  j.moral = clamp(j.moral + 8, 0, 100);
-  st.libres = st.libres.filter(p => p.id !== jugadorId);
-  ENGINE.noticia(st, `✍️ Fichaje: ${j.nombre} (${j.pos}, ${j.media}) llega libre con ficha de ${fmtM(salarioOferta)}.`);
-  UI.autosave(st);
-  return { ok: true, msg: `¡${j.nombre} firma con nosotros!` };
+
+// Lo que pide un agente libre según su perfil
+SEASON.exigenciasLibre = function (j) {
+  const ficha = Math.round(Math.max(j.salario * 1.05, j.valor * 0.0008) / 100) * 100;
+  return {
+    ficha,
+    prima: Math.round(Math.max(50000, j.valor * 0.06) / 1000) * 1000,
+    clausula: Math.round(j.valor * 1.5),
+    anios: j.edad >= 31 ? 2 : 3,
+    bonusPartido: Math.round(ficha * 0.05 / 100) * 100,
+    primaGol: Math.round(ficha * (j.pos === 'DEL' ? 0.14 : j.pos === 'MED' ? 0.10 : 0.03) / 100) * 100,
+    golesEsp: Math.max(0, Math.round((j.media - 58) / (j.pos === 'DEL' ? 6 : j.pos === 'MED' ? 9 : 22))),
+    partidosEsp: 24
+  };
 };
 
-SEASON.ficharEquipo = function (st, jugadorId, oferta) {
-  const j = st.players.find(p => p.id === jugadorId);
-  if (!j || !j.equipo || j.equipo === st.userTeam) return { ok: false, msg: 'Fichaje no válido.' };
-  if (oferta > st.finanzas.presup) return { ok: false, msg: 'No tienes presupuesto suficiente para esa oferta.' };
-  const vendedor = st.teams[j.equipo];
-  const minimo = Math.round(j.valor * 0.85 / 10000) * 10000;
-  if (oferta < minimo) return { ok: false, msg: `${vendedor.nom} rechaza la oferta. Piden mínimo ${fmtM(minimo)}.` };
-  const aceptacion = oferta >= j.valor * 1.25 ? 1 : oferta >= j.valor * 1.05 ? 0.75 : oferta >= minimo ? 0.4 : 0;
-  if (Math.random() > aceptacion) {
-    return { ok: false, msg: `${vendedor.nom} rechaza la oferta de ${fmtM(oferta)} por ${j.nombre}.` };
+// Valoración del agente/jugador sobre una propuesta personal ('acepta'|'contra'|'rechaza')
+SEASON.valoraLibre = function (j, t) {
+  const e = SEASON.exigenciasLibre(j);
+  // Valor anual que percibe el jugador (base + bonos estimados + primas repartidas)
+  const anual = (t.ficha || 0)
+    + (t.bonusPartido || 0) * e.partidosEsp * 0.75
+    + (t.primaGol || 0) * e.golesEsp
+    + Math.round((t.prima || 0) / (Math.max(1, t.anios) * 1.6))
+    + (t.libertadDesc ? e.ficha * 0.08 : -e.ficha * 0.03);
+  // Objetivo del jugador según seguridad del contrato
+  let objetivo = e.ficha * (1 + (t.anios >= 4 ? 0.10 : t.anios <= 2 ? -0.04 : 0));
+  if (j.edad <= 25 && (t.clausula || 0) < e.clausula * 0.7) objetivo *= 1.15; // joven sin cláusula digna
+  if ((t.clausula || 0) >= e.clausula * 1.3) objetivo *= 0.92;                // cláusula generosa
+  const ratio = anual / Math.max(1, objetivo);
+  return ratio >= 1 ? 'acepta' : ratio >= 0.85 ? 'contra' : 'rechaza';
+};
+
+// Lo que pide un club por su jugador
+SEASON.pideClub = function (st, j) {
+  let mult = 1.05 + Math.max(0, j.media - 70) * 0.02;
+  if (!j.enVenta) mult += 0.35;      // no está transferible: hay que convencer
+  if (j.cedible) mult -= 0.55;       // cesible: casi regalado
+  if (j.contrato <= 1) mult -= 0.25; // contrato en año final
+  return Math.round(j.valor * mult * rnd(0.95, 1.08) / 10000) * 10000;
+};
+
+function cobrarPresupuesto(st, imp, desc) {
+  st.finanzas.saldo -= imp;
+  st.finanzas.presup -= imp;
+  st.finanzas.log.unshift({ j: st.jornada, anio: st.anio, desc, imp: -imp });
+}
+
+// Envía una oferta y la deja pendiente hasta la próxima jornada
+SEASON.enviarOfertaUsuario = function (st, oferta) {
+  st.ofertasEnviadas = st.ofertasEnviadas || [];
+  const yaPendiente = st.ofertasEnviadas.some(o =>
+    o.estado === 'pendiente' && o.jugadorId === oferta.jugadorId);
+  if (yaPendiente) return { ok: false, msg: 'Ya hay una oferta en curso por este jugador. Espera la respuesta.' };
+
+  const costeInmediato = oferta.tipo === 'club'
+    ? (oferta.terminos.prima || 0)
+    : (oferta.terminos.prima || 0);
+  const compromisoTotal = costeInmediato + (oferta.tipo === 'club' ? oferta.terminos.importe : 0);
+  if (compromisoTotal > st.finanzas.presup)
+    return { ok: false, msg: `Compromiso total (${fmtM(compromisoTotal)}) superior al presupuesto (${fmtM(st.finanzas.presup)}).` };
+
+  if (oferta.tipo === 'libre') {
+    const j = st.libres.find(p => p.id === oferta.jugadorId);
+    if (!j) return { ok: false, msg: 'El jugador ya no está disponible.' };
+  } else {
+    const j = st.players.find(p => p.id === oferta.jugadorId);
+    if (!j || !j.equipo || j.equipo === st.userTeam) return { ok: false, msg: 'Fichaje no válido.' };
+    oferta.aEquipo = j.equipo;
+    oferta.pide = SEASON.pideClub(st, j);
   }
-  const salarioNuevo = Math.round(Math.max(j.salario * 1.15, j.valor * 0.0008) / 100) * 100;
-  st.finanzas.saldo -= oferta;
-  st.finanzas.presup -= oferta;
-  st.finanzas.log.unshift({ j: st.jornada, anio: st.anio, desc: `Fichaje de ${j.nombre} (${vendedor.abr})`, imp: -oferta });
-  vendedor.saldo += oferta; vendedor.presup += Math.round(oferta * 0.6);
-  j.equipo = st.userTeam; j.enVenta = false;
-  j.salario = salarioNuevo;
-  j.contrato = rndInt(3, 5);
-  j.moral = clamp(j.moral + 10, 0, 100);
-  ENGINE.noticia(st, `✍️ ¡Fichaje estrella! ${j.nombre} (${j.pos}, ${j.media}) llega del ${vendedor.nom} por ${fmtM(oferta)}.`);
+
+  oferta.id = Date.now() + rndInt(1, 9999);
+  oferta.jornadaEnvio = st.jornada;
+  oferta.estado = 'pendiente';
+  oferta.respuesta = null;
+  st.ofertasEnviadas.unshift(oferta);
   UI.autosave(st);
-  return { ok: true, msg: `¡${j.nombre} es nuevo jugador nuestro! Coste: ${fmtM(oferta)}. Ficha: ${fmtM(salarioNuevo)}.` };
+  return { ok: true, msg: 'Oferta enviada. Recibirás respuesta en la próxima jornada.' };
+};
+
+// Aplica los términos personales al jugador recién fichado
+function aplicarContrato(j, t) {
+  j.salario = t.ficha;
+  j.contrato = t.anios;
+  j.clausula = t.clausula || 0;
+  j.libertadDesc = !!t.libertadDesc;
+  j.bonusPartido = t.bonusPartido || 0;
+  j.primaGol = t.primaGol || 0;
+  j.enVenta = false; j.cedible = false;
+  j.moral = clamp(j.moral + 8, 0, 100);
+}
+
+function ejecutarLibre(st, j, t) {
+  if (t.prima) cobrarPresupuesto(st, t.prima, `Prima de fichaje: ${j.nombre}`);
+  j.equipo = st.userTeam;
+  aplicarContrato(j, t);
+  st.libres = st.libres.filter(p => p.id !== j.id);
+  if (!st.players.some(p => p.id === j.id)) st.players.push(j);
+  ENGINE.autoAlinear(st, st.userTeam);
+  ENGINE.noticia(st, `✍️ Fichaje: ${j.nombre} (${j.pos}, ${j.media}) llega libre. Ficha ${fmtM(t.ficha)}/año${t.prima ? `, prima ${fmtM(t.prima)}` : ''}.`);
+}
+
+function ejecutarTraspaso(st, j, t) {
+  const vendedor = st.teams[j.equipo];
+  const cuotas = Math.max(1, t.pagos || 1);
+  const cuota = Math.round(t.importe / cuotas);
+
+  // Primera plaza ahora, resto al inicio de cada temporada
+  cobrarPresupuesto(st, cuota, `Fichaje de ${j.nombre} (${vendedor.abr}) · plaza 1/${cuotas}`);
+  st.finanzas.pagos = st.finanzas.pagos || [];
+  for (let k = 1; k < cuotas; k++) {
+    st.finanzas.pagos.push({ anio: st.anio + k, importe: cuota, desc: `${j.nombre} (${vendedor.abr})` });
+  }
+  if (t.prima) cobrarPresupuesto(st, t.prima, `Prima de fichaje: ${j.nombre}`);
+
+  // Jugadores incluidos en la operación -> al club vendedor
+  for (const pid of (t.incluidos || [])) {
+    const p = st.players.find(x => x.id === pid);
+    if (!p || p.equipo !== st.userTeam) continue;
+    p.equipo = vendedor.id; p.enVenta = false; p.cedible = false;
+    p.contrato = rndInt(2, 4);
+    ENGINE.noticia(st, `🔁 ${p.nombre} entra en la operación y pasa al ${vendedor.nom}.`);
+  }
+  vendedor.saldo += t.importe;
+  vendedor.presup += Math.round(t.importe * 0.6);
+
+  j.equipo = st.userTeam;
+  aplicarContrato(j, t);
+  ENGINE.autoAlinear(st, st.userTeam);
+  ENGINE.noticia(st, `✍️ ¡Cerrado! ${j.nombre} (${j.pos}, ${j.media}) llega del ${vendedor.nom} por ${fmtM(t.importe)}${cuotas > 1 ? ` pagados en ${cuotas} años` : ''}.`);
+}
+
+function ejecutarCesion(st, j, t) {
+  const origen = st.teams[j.equipo];
+  if (t.prima) cobrarPresupuesto(st, t.prima, `Cesión de ${j.nombre} (${origen.abr}) · prima`);
+  j.salarioOriginal = j.salario;
+  j.salario = Math.round(j.salario * (t.pctSalario || 100) / 100);
+  j.cesionDe = origen.id;
+  j.cesionHastaAnio = st.anio;
+  j.equipo = st.userTeam;
+  j.enVenta = false; j.cedible = false;
+  j.moral = clamp(j.moral + 5, 0, 100);
+  ENGINE.autoAlinear(st, st.userTeam);
+  ENGINE.noticia(st, `🤝 Cesión: ${j.nombre} (${j.pos}, ${j.media}) llega cedido del ${origen.nom} hasta final de temporada.`);
+}
+
+// Resuelve las ofertas pendientes (llamado al cerrar cada jornada)
+SEASON.procesarOfertas = function (st) {
+  st.ofertasEnviadas = st.ofertasEnviadas || [];
+  let cambio = false;
+  for (const of of st.ofertasEnviadas) {
+    if (of.estado !== 'pendiente' || of.jornadaEnvio >= st.jornada) continue;
+    cambio = true;
+    if (of.tipo === 'libre') SEASON.resolverLibre(st, of);
+    else if (of.tipo === 'club') SEASON.resolverClub(st, of);
+    else if (of.tipo === 'cesion') SEASON.resolverCesion(st, of);
+  }
+  if (cambio) UI.autosave(st);
+};
+
+SEASON.resolverLibre = function (st, of) {
+  const j = st.libres.find(p => p.id === of.jugadorId);
+  if (!j) { of.estado = 'rechazada'; of.respuesta = 'El jugador había firmado con otro club.'; return; }
+  const v = SEASON.valoraLibre(j, of.terminos);
+  if (v === 'acepta') {
+    ejecutarLibre(st, j, of.terminos);
+    of.estado = 'aceptada';
+    of.respuesta = `¡${j.nombre} ha firmado como agente libre!`;
+  } else if (v === 'contra') {
+    const e = SEASON.exigenciasLibre(j);
+    const contra = { ...of.terminos, ficha: Math.round(Math.max(of.terminos.ficha, e.ficha) * 1.18 / 100) * 100 };
+    of.estado = 'contraoferta';
+    of.contra = contra;
+    of.respuesta = `El agente de ${j.nombre} pide mejoras: ficha de ${fmtM(contra.ficha)}/año.`;
+    ENGINE.noticia(st, `💬 ${j.nombre} pide mejoras para firmar su llegada libre.`);
+  } else {
+    of.estado = 'rechazada';
+    of.respuesta = `${j.nombre} rechaza la propuesta: no le convence económicamente.`;
+    ENGINE.noticia(st, `❌ ${j.nombre} rechaza nuestra oferta como agente libre.`);
+  }
+};
+
+SEASON.resolverClub = function (st, of) {
+  const j = st.players.find(p => p.id === of.jugadorId);
+  if (!j || j.equipo !== of.aEquipo) { of.estado = 'rechazada'; of.respuesta = 'El jugador se ha marchado a otro club.'; return; }
+  const vendedor = st.teams[of.aEquipo];
+  const t = of.terminos;
+  const pide = of.pide || SEASON.pideClub(st, j);
+
+  const valorIncluidos = (t.incluidos || []).reduce((s, pid) => {
+    const p = st.players.find(x => x.id === pid);
+    return s + (p && p.equipo === st.userTeam ? ENGINE.calcValor(p) : 0);
+  }, 0);
+  const efectivo = t.importe * (1 - 0.02 * ((t.pagos || 1) - 1)) + Math.round(valorIncluidos * 0.85);
+  const valJug = SEASON.valoraLibre(j, t);
+
+  if (efectivo >= pide && valJug === 'acepta') {
+    ejecutarTraspaso(st, j, t);
+    of.estado = 'aceptada';
+    of.respuesta = `¡Operación cerrada! ${vendedor.nom} acepta ${fmtM(t.importe)}${(t.incluidos || []).length ? ' + jugadores incluidos' : ''} y ${j.nombre} acepta el contrato.`;
+  } else if (efectivo >= pide * 0.82 || valJug === 'contra') {
+    const contra = { ...t };
+    let motivos = [];
+    if (efectivo < pide) {
+      contra.importe = pide;
+      contra.pagos = 1;
+      motivos.push(`el club pide ${fmtM(pide)}`);
+    }
+    if (valJug !== 'acepta') {
+      const e = SEASON.exigenciasLibre(j);
+      contra.ficha = Math.round(Math.max(t.ficha || 0, e.ficha) * 1.15 / 100) * 100;
+      motivos.push(`el jugador pide ${fmtM(contra.ficha)}/año`);
+    }
+    of.estado = 'contraoferta';
+    of.contra = contra;
+    of.respuesta = `Negociación abierta: ${motivos.join(' y ')}.`;
+    ENGINE.noticia(st, `💬 Contraoferta por ${j.nombre}: ${motivos.join(' y ')}.`);
+  } else {
+    of.estado = 'rechazada';
+    of.respuesta = `${vendedor.nom} rechaza la oferta de plano por ${j.nombre}.`;
+    ENGINE.noticia(st, `❌ ${vendedor.nom} rechaza nuestra oferta por ${j.nombre}.`);
+  }
+};
+
+SEASON.resolverCesion = function (st, of) {
+  const j = st.players.find(p => p.id === of.jugadorId);
+  if (!j || j.equipo !== of.aEquipo) { of.estado = 'rechazada'; of.respuesta = 'El jugador ya no está en ese club.'; return; }
+  const origen = st.teams[of.aEquipo];
+  const t = of.terminos;
+  const pedido = Math.round(Math.max(50000, j.valor * 0.05) / 1000) * 1000;
+  if ((t.prima || 0) >= pedido) {
+    ejecutarCesion(st, j, t);
+    of.estado = 'aceptada';
+    of.respuesta = `¡Cesión acordada! ${j.nombre} llega hasta final de temporada.`;
+  } else if ((t.prima || 0) >= pedido * 0.5) {
+    of.estado = 'contraoferta';
+    of.contra = { ...t, prima: pedido };
+    of.respuesta = `${origen.nom} deja salir a ${j.nombre} cedido a cambio de ${fmtM(pedido)}.`;
+  } else {
+    of.estado = 'rechazada';
+    of.respuesta = `${origen.nom} no deja salir a ${j.nombre} en esas condiciones.`;
+    ENGINE.noticia(st, `❌ ${origen.nom} frena la cesión de ${j.nombre}.`);
+  }
 };
 
 SEASON.aceptarOfertaVenta = function (st, idx) {
