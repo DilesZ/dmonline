@@ -59,6 +59,12 @@
     var params = new URLSearchParams(location.search);
     var rom = params.get('rom');
     var name = params.get('name');
+    var bios = params.get('bios');
+
+    // Núcleos disponibles en /data/cores (clave en minúsculas → valor canónico).
+    var CORES = { snes: 'snes', arcade: 'arcade', segamd: 'segaMD', nes: 'nes' };
+    var CORE_LABEL = { snes: 'SNES', arcade: 'ARCADE', segaMD: 'MEGA DRIVE', nes: 'NES' };
+    var core = CORES[(params.get('core') || 'snes').toLowerCase()] || 'snes';
 
     if (!rom) {
       document.getElementById('game').style.display = 'none';
@@ -72,25 +78,31 @@
     // Solo aceptamos http(s), blob: y rutas same-origin (/api/drive) — nunca data:.
     if (!/^(https:|blob:|\/)/i.test(rom)) {
       document.getElementById('game').style.display = 'none';
-      var e = document.getElementById('err');
-      e.style.display = 'block';
-      e.innerHTML = '<strong>La URL de la ROM no es válida.</strong><br>' +
+      var e2 = document.getElementById('err');
+      e2.style.display = 'block';
+      e2.innerHTML = '<strong>La URL de la ROM no es válida.</strong><br>' +
         'Vuelve al hub y abre el juego desde la biblioteca.';
       return;
     }
 
     if (name) {
+      var label = CORE_LABEL[core] || core.toUpperCase();
       document.getElementById('romName').textContent =
-        decodeURIComponent(name).replace(/\.[^.]+$/, '') + ' · SNES';
-      document.title = decodeURIComponent(name) + ' · Retro Hub';
+        decodeURIComponent(name).replace(/\.[^.]+$/, '') + ' · ' + label;
+      document.title = decodeURIComponent(name) + ' · JuegosZ';
     }
 
     window.EJS_player = '#game';
-    window.EJS_core = 'snes';
+    window.EJS_core = core;
     window.EJS_gameUrl = rom;
     window.EJS_pathtodata = 'data/';
     window.EJS_startOnLoaded = true;
     window.EJS_backgroundColor = '#0b0514';
+
+    // BIOS opcional vía proxy (p. ej. neogeo.zip para el núcleo arcade).
+    if (bios && /^[A-Za-z0-9_-]{10,}$/.test(bios)) {
+      window.EJS_biosUrl = '/api/drive?action=file&id=' + bios;
+    }
 
     var s = document.createElement('script');
     s.src = 'data/loader.js';

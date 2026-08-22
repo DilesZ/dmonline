@@ -5,25 +5,36 @@ import { useCallback, useEffect, useState } from 'react';
 interface DriveRom {
   id: string;
   name: string;
+  core?: string;
 }
 
 const SYS = 'Nintendo - Super Nintendo Entertainment System';
+
+const CORE_LABEL: Record<string, string> = {
+  snes: 'SNES',
+  arcade: 'ARCADE',
+  segaMD: 'MEGA DRIVE',
+  nes: 'NES',
+};
 
 function thumbUrl(base: string, kind: 'Named_Boxarts' | 'Named_Snaps'): string {
   return `https://thumbnails.libretro.com/${encodeURIComponent(SYS)}/${kind}/${encodeURIComponent(base)}.png`;
 }
 
-function GameCard({ rom }: { rom: DriveRom }) {
+function GameCard({ rom, biosId }: { rom: DriveRom; biosId?: string | null }) {
   const base = rom.name.replace(/\.[^.]+$/, '');
   const [stage, setStage] = useState(0); // 0 = boxart, 1 = snapshot, 2 = placeholder
+  const core = rom.core ?? 'snes';
+
+  const params = new URLSearchParams({
+    rom: `/api/drive?action=file&id=${rom.id}`,
+    name: rom.name,
+    core,
+  });
+  if (core === 'arcade' && biosId) params.set('bios', biosId);
 
   return (
-    <a
-      className="game"
-      href={`/snes_emulator.html?rom=${encodeURIComponent(
-        `/api/drive?action=file&id=${rom.id}`,
-      )}&name=${encodeURIComponent(rom.name)}`}
-    >
+    <a className="game" href={`/snes_emulator.html?${params.toString()}`}>
       <div className="cover">
         {stage < 2 && (
           <img
@@ -38,6 +49,7 @@ function GameCard({ rom }: { rom: DriveRom }) {
             <span>{base}</span>
           </div>
         )}
+        <span className="sys">{CORE_LABEL[core] ?? core.toUpperCase()}</span>
         <div className="play">
           <span className="playbtn">▶</span>
         </div>
@@ -49,6 +61,7 @@ function GameCard({ rom }: { rom: DriveRom }) {
 
 export default function Home() {
   const [roms, setRoms] = useState<DriveRom[]>([]);
+  const [biosId, setBiosId] = useState<string | null>(null);
   const [driveState, setDriveState] = useState<'idle' | 'ok' | 'error'>('idle');
 
   const loadDrive = useCallback(async () => {
@@ -56,8 +69,9 @@ export default function Home() {
     try {
       const res = await fetch('/api/drive?action=list');
       if (!res.ok) throw new Error(String(res.status));
-      const data: { roms?: DriveRom[] } = await res.json();
+      const data: { roms?: DriveRom[]; biosId?: string } = await res.json();
       setRoms(data.roms ?? []);
+      setBiosId(data.biosId ?? null);
       setDriveState('ok');
     } catch {
       setDriveState('error');
@@ -75,13 +89,13 @@ export default function Home() {
           JUEGOS<em>Z</em>
         </a>
         <nav className="links">
-          <span className="chip">🎮 SNES</span>
+          <span className="chip">🎮 RETRO</span>
         </nav>
       </header>
 
       <section className="hero">
         <h1>
-          Tus clásicos de <em>Super Nintendo</em>,
+          Tus clásicos <em>retro</em>,
           <br />
           directo en el navegador
         </h1>
@@ -114,7 +128,7 @@ export default function Home() {
         )}
 
         {driveState === 'ok' && roms.length === 0 && (
-          <p className="status">Todavía no hay juegos. Sube ROMs (.smc, .sfc, .zip…) a la carpeta de Drive.</p>
+          <p className="status">Todavía no hay juegos. Sube ROMs a la carpeta de Drive (raíz = SNES, o en subcarpetas: Arcade, Mega Drive, NES…)</p>
         )}
 
         {roms.length > 0 && (
@@ -225,6 +239,13 @@ export default function Home() {
           box-shadow: 0 16px 38px rgba(124,58,237,.45);
         }
         .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .sys {
+          position: absolute; top: 8px; left: 8px; z-index: 2;
+          font-size: 9px; font-weight: 800; letter-spacing: 1px; color: #fff;
+          padding: 3px 8px; border-radius: 999px;
+          background: rgba(7,3,15,.72); border: 1px solid rgba(167,139,250,.45);
+          backdrop-filter: blur(4px);
+        }
         .fallback {
           width: 100%; height: 100%; display: flex; align-items: center;
           justify-content: center; padding: 12px; text-align: center;
