@@ -269,41 +269,71 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
 .controles-tacticas { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
 .controles-tacticas label { font-size: 11px; color: var(--gris); letter-spacing: 1px; }
 
-/* ===== Panel de plantilla estilo Transfermarkt ===== */
+/* ===== Panel de plantilla — arcade con datos Transfermarkt ===== */
 .tm-panel {
-  background: #fff; color: #1e2833;
-  border: 1px solid #d6dbe1; border-radius: 6px; overflow: hidden;
-  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(180deg, rgba(26,17,58,.92), rgba(16,10,38,.94));
+  border: 1px solid rgba(167,139,250,.22);
+  border-radius: 18px; overflow: hidden;
+  box-shadow: 0 12px 34px rgba(0,0,0,.32);
 }
 .tm-box-header {
-  background: linear-gradient(180deg, #fbfcfd, #eef1f4);
-  border-bottom: 2px solid #0f62a7;
-  padding: 10px 14px; font-weight: 800; font-size: 15px; color: #052a4e;
+  background: transparent;
+  border-bottom: 1px solid rgba(167,139,250,.25);
+  padding: 13px 16px; font-weight: 700; font-size: 15px; color: var(--txt);
+  display: flex; align-items: center; gap: 9px;
+  font-family: 'VT323', 'IBM Plex Mono', monospace; letter-spacing: 1px;
 }
-.tm-box-header small { font-weight: 400; font-size: 12px; color: #69737d; margin-left: 8px; }
+.tm-box-header::before {
+  content: '';
+  width: 4px; height: 17px; border-radius: 99px;
+  background: linear-gradient(180deg, var(--amarillo), #c026d3);
+  box-shadow: 0 0 10px rgba(255,210,63,.5);
+}
+.tm-box-header small { font-weight: 400; font-size: 11.5px; color: var(--gris); margin-left: auto; letter-spacing: .5px; }
 .tm-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 980px; }
 .tm-table thead th {
-  text-align: left; font-size: 10.5px; letter-spacing: .8px; text-transform: uppercase;
-  color: #69737d; background: #f7f9fb; padding: 8px 10px;
-  border-bottom: 1px solid #e3e8ed; white-space: nowrap;
+  text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.4px;
+  color: #9d93c9; padding: 9px 10px;
+  border-bottom: 1px solid rgba(167,139,250,.28);
+  white-space: nowrap;
 }
-.tm-table tbody tr { cursor: pointer; border-bottom: 1px solid #eef1f4; }
-.tm-table tbody tr:nth-child(even) { background: #fafbfc; }
-.tm-table tbody tr:hover { background: #eff6fd; }
-.tm-table td { padding: 5px 10px; vertical-align: middle; white-space: nowrap; }
-.tm-num { color: #69737d; font-weight: 700; width: 30px; text-align: center; }
-.tm-jugador { display: flex; align-items: center; gap: 10px; }
+.tm-table tbody tr { cursor: pointer; transition: background .12s ease; }
+.tm-table tbody tr:nth-child(even) { background: rgba(124,58,237,.045); }
+.tm-table tbody tr:hover { background: rgba(124,58,237,.14); }
+.tm-table td { padding: 6px 10px; vertical-align: middle; white-space: nowrap; }
+.tm-num { color: #77689f; font-weight: 800; width: 30px; text-align: center; }
+.tm-jugador { display: flex; align-items: center; gap: 11px; }
 .tm-foto {
-  width: 38px; height: 38px; border-radius: 4px; object-fit: cover; object-position: top center;
-  flex: 0 0 auto; background: #e8ecf0;
+  width: 38px; height: 38px; border-radius: 10px; object-fit: cover; object-position: top center;
+  flex: 0 0 auto; background: #120a24;
+  border: 1px solid rgba(167,139,250,.30);
+  box-shadow: 0 4px 14px rgba(0,0,0,.45);
 }
-.tm-sinfoto { display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #8b95a0; }
-.tm-nombre { font-weight: 700; color: #0f62a7; }
-.tm-posdet { font-size: 11px; color: #69737d; margin-top: 1px; }
-.tm-flag { height: 12px; border-radius: 1px; display: block; margin: 0 auto; }
-.tm-vm { font-weight: 700; }
-.tm-titular { color: #1c8a43; font-size: 11px; font-weight: 700; }
-.tm-footer { padding: 9px 14px; font-size: 12px; color: #69737d; background: #f7f9fb; border-top: 1px solid #e3e8ed; }
+.tm-sinfoto {
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'VT323', monospace; font-size: 17px; color: #8b7fc0;
+}
+.tm-nombre { font-weight: 700; color: var(--txt); transition: color .12s ease; }
+.tm-table tbody tr:hover .tm-nombre { color: var(--amarillo); }
+.pl-pos {
+  display: inline-block; margin-top: 2px;
+  font-size: 10px; font-weight: 700; letter-spacing: .8px;
+  padding: 1px 7px; border-radius: 999px;
+  border: 1px solid;
+}
+.pl-pos.pos-POR { color: #ffd25e; border-color: #ffd25e66; background: rgba(255,210,94,.08); }
+.pl-pos.pos-DEF { color: #7cc7ff; border-color: #7cc7ff55; background: rgba(124,199,255,.08); }
+.pl-pos.pos-MED { color: #6ee7a0; border-color: #6ee7a055; background: rgba(110,231,160,.08); }
+.pl-pos.pos-DEL { color: #ff9db0; border-color: #ff9db055; background: rgba(255,157,176,.08); }
+.tm-flag { height: 12px; border-radius: 2px; display: block; margin: 0 auto; box-shadow: 0 0 0 1px rgba(255,255,255,.15); }
+.tm-vm { font-weight: 700; color: var(--amarillo); }
+.tm-titular {
+  color: var(--verde); font-size: 10.5px; font-weight: 700; letter-spacing: .5px;
+  padding: 2px 8px; border-radius: 999px;
+  border: 1px solid rgba(55,214,122,.45); background: rgba(55,214,122,.10);
+}
+.tm-footer { padding: 10px 16px; font-size: 12px; color: var(--gris); border-top: 1px solid rgba(167,139,250,.20); }
 
 /* Calendario */
 .calendario-lista { display: flex; flex-direction: column; gap: 3px; max-height: 65vh; overflow-y: auto; }

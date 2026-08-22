@@ -285,7 +285,7 @@ UI.tabPlantilla = function () {
             : `<span class="tm-foto tm-sinfoto">${ini}</span>`}
           <div>
             <div class="tm-nombre">${esc(j.nombre)}${titularIdx >= 0 ? ' ⭐' : ''}</div>
-            <div class="tm-posdet">${esc(r.posDet || j.pos)}</div>
+            <div><span class="pl-pos pos-${j.pos}">${esc(r.posDet || j.pos)}</span></div>
           </div>
         </div>
       </td>
