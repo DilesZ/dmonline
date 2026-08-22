@@ -10,29 +10,26 @@ const lato = Lato({
 });
 
 export const metadata: Metadata = {
-  title: "Dinamic Multimedia · Clon Retro",
+  title: "JuegosZ · SNES online",
   description:
-    "Clon no oficial de online.dinamicmultimedia.es: juega a los clásicos de Dinamic Multimedia (PC Fútbol, PC Basket, Premier Manager, Igor, Combat Chess) directamente en tu navegador.",
+    "Juega a clásicos de Super Nintendo directamente en tu navegador: emulación con EmulatorJS, sin descargas ni instalaciones.",
   keywords: [
-    "Dinamic Multimedia",
-    "PC Fútbol",
-    "PC Basket",
-    "Premier Manager",
-    "Igor",
-    "Combat Chess",
+    "JuegosZ",
+    "SNES",
+    "Super Nintendo",
+    "emulador online",
     "retrogaming",
     "juegos clásicos",
   ],
-  authors: [{ name: "Clon no oficial" }],
+  authors: [{ name: "JuegosZ" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>",
   },
   openGraph: {
-    title: "Dinamic Multimedia · Clon Retro",
+    title: "JuegosZ · SNES online",
     description:
-      "Juega a los clásicos de Dinamic Multimedia en tu navegador. Clon no oficial.",
-    url: "https://online.dinamicmultimedia.es",
-    siteName: "Dinamic Multimedia (clon)",
+      "Juega a clásicos de Super Nintendo directamente en tu navegador.",
+    siteName: "JuegosZ",
     type: "website",
   },
 };

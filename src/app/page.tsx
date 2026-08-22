@@ -38,7 +38,9 @@ function GameCard({ rom }: { rom: DriveRom }) {
             <span>{base}</span>
           </div>
         )}
-        <div className="play">▶</div>
+        <div className="play">
+          <span className="playbtn">▶</span>
+        </div>
       </div>
       <span className="title">{base}</span>
     </a>
@@ -68,13 +70,41 @@ export default function Home() {
 
   return (
     <div className="hub">
-      <header className="topbar">
-        <h1>▸ RETRO HUB</h1>
-        <span className="badge">SNES</span>
+      <header className="nav">
+        <a className="logo" href="/">
+          JUEGOS<em>Z</em>
+        </a>
+        <nav className="links">
+          <span className="chip">🎮 SNES</span>
+        </nav>
       </header>
 
+      <section className="hero">
+        <h1>
+          Tus clásicos de <em>Super Nintendo</em>,
+          <br />
+          directo en el navegador
+        </h1>
+        <p>Sin descargas. Sin instalaciones. Elige carátula y juega.</p>
+      </section>
+
       <main>
-        {driveState === 'idle' && <p className="status">Cargando biblioteca…</p>}
+        <div className="section-head">
+          <h2>Biblioteca</h2>
+          {driveState === 'ok' && roms.length > 0 && (
+            <span className="count">
+              {roms.length} {roms.length === 1 ? 'juego' : 'juegos'}
+            </span>
+          )}
+        </div>
+
+        {driveState === 'idle' && (
+          <div className="grid">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div className="skeleton" key={i} />
+            ))}
+          </div>
+        )}
 
         {driveState === 'error' && (
           <div className="status error">
@@ -84,7 +114,7 @@ export default function Home() {
         )}
 
         {driveState === 'ok' && roms.length === 0 && (
-          <p className="status">La carpeta de Drive está vacía. Sube ROMs (.smc, .sfc, .zip…)</p>
+          <p className="status">Todavía no hay juegos. Sube ROMs (.smc, .sfc, .zip…) a la carpeta de Drive.</p>
         )}
 
         {roms.length > 0 && (
@@ -97,38 +127,78 @@ export default function Home() {
       </main>
 
       <footer>
+        <p className="flogo">
+          JUEGOS<em>Z</em>
+        </p>
         <p>
           Las ROMs son responsabilidad de cada usuario: utiliza únicamente copias de
           seguridad de juegos que poseas. Este sitio no almacena ni distribuye juegos.
         </p>
+        <p className="tech">Emulación por EmulatorJS · núcleo snes9x</p>
       </footer>
 
       <style jsx global>{`
         html, body {
-          background: #0b0514;
+          background: #07030f;
           color: #e8dff5;
           background-image:
-            radial-gradient(ellipse at 50% -20%, rgba(124,58,237,.25), transparent 60%),
+            radial-gradient(ellipse 80% 50% at 50% -10%, rgba(124,58,237,.28), transparent 70%),
+            radial-gradient(ellipse 40% 30% at 90% 10%, rgba(192,38,211,.12), transparent 70%),
             repeating-linear-gradient(0deg, transparent 0 2px, rgba(255,255,255,.012) 2px 4px);
         }
         .hub { min-height: 100vh; display: flex; flex-direction: column; }
-        .topbar {
+
+        /* ─── Navbar ─── */
+        .nav {
+          position: sticky; top: 0; z-index: 50;
           display: flex; align-items: center; justify-content: space-between;
-          padding: 14px 22px; background: linear-gradient(180deg, #1a0f2e, #120a20);
-          border-bottom: 1px solid #3c096c;
+          padding: 14px 28px;
+          background: rgba(10,5,20,.82); backdrop-filter: blur(10px);
+          border-bottom: 1px solid #2b1a4d;
         }
-        .topbar h1 {
-          font-size: 16px; font-weight: 800; letter-spacing: 2px;
-          color: #c4b5fd; text-transform: uppercase;
+        .logo {
+          font-size: 21px; font-weight: 900; letter-spacing: 2.5px;
+          color: #fff; text-decoration: none; text-shadow: 0 0 22px rgba(139,92,246,.55);
         }
-        .badge {
-          font-size: 11px; letter-spacing: 1.5px; font-weight: 800;
-          padding: 5px 12px; border-radius: 999px; color: #fff;
+        .logo em, .flogo em {
+          font-style: normal;
+          background: linear-gradient(90deg, #a78bfa, #e879f9);
+          -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .chip {
+          font-size: 11px; letter-spacing: 1.2px; font-weight: 800;
+          padding: 6px 13px; border-radius: 999px; color: #fff;
           background: linear-gradient(90deg, #7c3aed, #c026d3);
-          box-shadow: 0 0 16px rgba(192,38,211,.45);
+          box-shadow: 0 0 16px rgba(192,38,211,.4);
         }
-        main {
-          flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 36px 22px;
+
+        /* ─── Hero ─── */
+        .hero { text-align: center; padding: 64px 20px 44px; }
+        .hero h1 {
+          font-size: clamp(30px, 5.5vw, 52px); font-weight: 900; line-height: 1.12;
+          color: #fff; letter-spacing: .5px;
+        }
+        .hero h1 em {
+          font-style: normal;
+          background: linear-gradient(90deg, #a78bfa, #e879f9, #a78bfa);
+          -webkit-background-clip: text; background-clip: text; color: transparent;
+          filter: drop-shadow(0 0 18px rgba(192,38,211,.45));
+        }
+        .hero p { color: #9d8bc7; margin-top: 14px; font-size: 16px; letter-spacing: .3px; }
+
+        /* ─── Main ─── */
+        main { flex: 1; width: 100%; max-width: 1160px; margin: 0 auto; padding: 0 24px 40px; }
+        .section-head {
+          display: flex; align-items: baseline; gap: 14px;
+          margin: 8px 0 22px; padding-bottom: 12px; border-bottom: 1px solid #241543;
+        }
+        .section-head h2 {
+          font-size: 15px; font-weight: 900; letter-spacing: 3px;
+          text-transform: uppercase; color: #c4b5fd;
+        }
+        .count {
+          font-size: 11.5px; font-weight: 700; color: #77689f;
+          padding: 3px 10px; border-radius: 999px; border: 1px solid #37265c;
         }
         .status { text-align: center; color: #9d8bc7; margin-top: 60px; font-size: 15px; }
         .status.error p { margin-bottom: 14px; color: #fca5a5; }
@@ -136,20 +206,23 @@ export default function Home() {
           padding: 8px 18px; border-radius: 8px; cursor: pointer;
           border: 1px solid #7c3aed; background: transparent; color: #c4b5fd; font-weight: 700;
         }
+        .status button:hover { background: #7c3aed; color: #fff; }
+
+        /* ─── Grid ─── */
         .grid {
-          display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-          gap: 20px 16px;
+          display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+          gap: 24px 16px;
         }
         .game { text-decoration: none; color: inherit; display: block; }
         .cover {
-          position: relative; aspect-ratio: 3 / 4; border-radius: 10px; overflow: hidden;
-          border: 1px solid #37265c; background: #120a20;
-          box-shadow: 0 4px 14px rgba(0,0,0,.45);
+          position: relative; aspect-ratio: 3 / 4; border-radius: 12px; overflow: hidden;
+          border: 1px solid #2b1a4d; background: #120a20;
+          box-shadow: 0 6px 18px rgba(0,0,0,.5);
           transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
         }
         .game:hover .cover {
-          transform: translateY(-5px); border-color: #a78bfa;
-          box-shadow: 0 14px 34px rgba(124,58,237,.4);
+          transform: translateY(-6px) scale(1.02); border-color: #a78bfa;
+          box-shadow: 0 16px 38px rgba(124,58,237,.45);
         }
         .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .fallback {
@@ -160,19 +233,40 @@ export default function Home() {
         }
         .play {
           position: absolute; inset: 0; display: flex; align-items: center;
-          justify-content: center; font-size: 34px; color: #fff; opacity: 0;
-          background: rgba(11,5,20,.55); transition: opacity .16s ease;
-          text-shadow: 0 0 24px rgba(192,38,211,.9);
+          justify-content: center; opacity: 0; transition: opacity .16s ease;
+          background: linear-gradient(180deg, rgba(7,3,15,.15), rgba(7,3,15,.72));
+        }
+        .playbtn {
+          width: 54px; height: 54px; border-radius: 999px;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 20px; color: #fff; padding-left: 4px;
+          background: linear-gradient(135deg, #7c3aed, #c026d3);
+          box-shadow: 0 0 30px rgba(192,38,211,.75);
         }
         .game:hover .play { opacity: 1; }
         .title {
-          display: block; margin-top: 9px; font-size: 12.5px; font-weight: 600;
-          color: #9d8bc7; line-height: 1.35; overflow: hidden;
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+          overflow: hidden; margin-top: 10px; font-size: 12.5px; font-weight: 600;
+          color: #9d8bc7; line-height: 1.35;
         }
         .game:hover .title { color: #e8dff5; }
-        footer { text-align: center; padding: 26px 20px 34px; }
-        footer p { color: #5f527f; font-size: 12px; line-height: 1.7; max-width: 640px; margin: 0 auto; }
+
+        /* ─── Skeletons ─── */
+        .skeleton {
+          aspect-ratio: 3 / 4; border-radius: 12px; border: 1px solid #1c1136;
+          background: linear-gradient(100deg, #120a20 40%, #1c1136 50%, #120a20 60%);
+          background-size: 200% 100%; animation: shine 1.4s infinite linear;
+        }
+        @keyframes shine { to { background-position: -200% 0; } }
+
+        /* ─── Footer ─── */
+        footer { text-align: center; padding: 40px 20px 42px; border-top: 1px solid #1c1136; }
+        .flogo {
+          font-size: 15px; font-weight: 900; letter-spacing: 2.5px; color: #fff;
+          margin-bottom: 12px;
+        }
+        footer p { color: #5f527f; font-size: 12px; line-height: 1.7; max-width: 620px; margin: 0 auto; }
+        .tech { margin-top: 8px; color: #3d3358; }
       `}</style>
     </div>
   );
