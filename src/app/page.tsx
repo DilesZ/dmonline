@@ -577,15 +577,19 @@ export default function Home() {
           background: rgba(5,2,12,.62);
           backdrop-filter: blur(6px);
           min-width: 0;
+          min-height: 0;
         }
         .rail-head {
           display: flex; justify-content: space-between; align-items: center;
           padding: 14px 18px 10px;
           font-size: 10px; font-weight: 900; letter-spacing: 2.6px; color: #77689f;
           border-bottom: 1px solid rgba(167,139,250,.12);
+          flex-shrink: 0;
         }
         .rail {
-          flex: 1; overflow-y: auto;
+          flex: 1 1 0;
+          min-height: 0;
+          overflow-y: auto;
           padding: 8px 10px 14px;
           scrollbar-width: thin;
           scrollbar-color: #37265c transparent;
