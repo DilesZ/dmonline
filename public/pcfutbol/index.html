@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PC Fútbol 2026 · JuegosZ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ===== MENÚ PRINCIPAL ===== -->
+<div id="screen-menu" class="screen active">
+  <div class="menu-box">
+    <div class="logo-pcf">PC FÚTBOL <span>2026</span></div>
+    <div class="logo-sub">MANAGER DE FÚTBOL · EDICIÓN JUEGOSZ</div>
+    <div class="menu-buttons">
+      <button class="btn-menu" onclick="UI.irNuevaPartida()">▶ NUEVA PARTIDA</button>
+      <button class="btn-menu" onclick="UI.pantallaCargar()">📁 CARGAR PARTIDA</button>
+      <button class="btn-menu" onclick="UI.mostrarAyuda()">? CÓMO JUGAR</button>
+    </div>
+    <div class="menu-footer">1ª Y 2ª DIVISIÓN · COPA DEL REY · FICHAJES · TÁCTICAS · EN VIVO</div>
+  </div>
+</div>
+
+<!-- ===== NUEVA PARTIDA: ELEGIR EQUIPO ===== -->
+<div id="screen-nueva" class="screen">
+  <div class="panel-grande">
+    <h2 class="titulo-seccion">NUEVA PARTIDA — ELIGE TU CLUB</h2>
+    <div class="selector-div">
+      <button id="btn-div1" class="btn-tab active" onclick="UI.setDivSeleccion(1)">PRIMERA DIVISIÓN</button>
+      <button id="btn-div2" class="btn-tab" onclick="UI.setDivSeleccion(2)">SEGUNDA DIVISIÓN</button>
+    </div>
+    <div id="lista-equipos-nueva" class="grid-equipos"></div>
+    <div class="fila-form">
+      <label>TU NOMBRE DE ENTRENADOR:</label>
+      <input type="text" id="input-manager" maxlength="20" placeholder="ENTRENADOR" value="">
+    </div>
+    <div id="info-equipo-nueva" class="info-equipo hidden"></div>
+    <div class="acciones-panel">
+      <button class="btn btn-sec" onclick="UI.volverMenu()">◀ VOLVER</button>
+      <button class="btn btn-principal" id="btn-empezar" disabled onclick="UI.empezarPartida()">COMENZAR TEMPORADA ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CARGAR PARTIDA ===== -->
+<div id="screen-cargar" class="screen">
+  <div class="panel-grande">
+    <h2 class="titulo-seccion">CARGAR PARTIDA</h2>
+    <div id="lista-guardados"></div>
+    <div class="acciones-panel">
+      <button class="btn btn-sec" onclick="UI.volverMenu()">◀ VOLVER</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== AYUDA ===== -->
+<div id="screen-ayuda" class="screen">
+  <div class="panel-grande">
+    <h2 class="titulo-seccion">CÓMO JUGAR</h2>
+    <div class="texto-ayuda">
+      <p><b>OBJETIVO:</b> dirige tu club temporada tras temporada. La directiva te pondrá un objetivo de clasificación: cúmplelo o serás despedido.</p>
+      <p><b>PLANTILLA:</b> consulta jugadores, medias, moral, forma física, contratos y salarios. Puedes poner jugadores en venta.</p>
+      <p><b>TÁCTICAS:</b> elige formación (4-4-2, 4-3-3...), alineación (clic para cambiar), mentalidad y capitán. Los jugadores fuera de su posición rinden peor.</p>
+      <p><b>FICHAJES:</b> ficha agentes libres o haz ofertas por jugadores en venta de otros equipos. Vigila el presupuesto.</p>
+      <p><b>FINANZAS:</b> cada semana entran patrocinio/TV y salen nóminas. En casa ingresas taquilla.</p>
+      <p><b>PARTIDOS:</b> cada jornada juegas en vivo tu partido (con narración) y el resto se simula. También hay Copa del Rey a eliminatoria directa con penaltis.</p>
+      <p><b>GUARDADO:</b> partida automática tras cada jornada + 3 ranuras manuales desde el menú del hub.</p>
+    </div>
+    <div class="acciones-panel">
+      <button class="btn btn-sec" onclick="UI.volverMenu()">◀ VOLVER</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== HUB DE GESTIÓN ===== -->
+<div id="screen-hub" class="screen">
+  <header class="hub-topbar">
+    <div class="club-badge" id="hub-badge"></div>
+    <div class="club-info">
+      <div class="club-nombre" id="hub-equipo"></div>
+      <div class="club-sub" id="hub-sub"></div>
+    </div>
+    <div class="hub-datos" id="hub-datos"></div>
+    <button class="btn btn-mini" onclick="UI.abrirMenuPartida()" title="Menú">☰</button>
+  </header>
+
+  <nav class="hub-tabs" id="hub-tabs">
+    <button data-tab="resumen" class="active">RESUMEN</button>
+    <button data-tab="plantilla">PLANTILLA</button>
+    <button data-tab="tacticas">TÁCTICAS</button>
+    <button data-tab="calendario">CALENDARIO</button>
+    <button data-tab="clasificacion">CLASIFICACIÓN</button>
+    <button data-tab="fichajes">FICHAJES</button>
+    <button data-tab="finanzas">FINANZAS</button>
+    <button data-tab="entrenamiento">ENTRENAMIENTO</button>
+  </nav>
+
+  <main id="hub-contenido" class="hub-contenido"></main>
+</div>
+
+<!-- ===== PARTIDO EN VIVO ===== -->
+<div id="screen-partido" class="screen">
+  <div class="partido-box">
+    <div class="marcador">
+      <div class="equipo-marcador" id="pm-eqH"></div>
+      <div class="score" id="pm-score">0 - 0</div>
+      <div class="equipo-marcador" id="pm-eqA"></div>
+    </div>
+    <div class="minuto-partido"><span id="pm-minuto">0'</span></div>
+    <div class="barra-stats" id="pm-stats"></div>
+    <div class="narracion" id="pm-narracion"></div>
+    <div class="controles-partido">
+      <button class="btn" id="pm-play" onclick="Match.playPause()">▶ JUGAR</button>
+      <button class="btn" onclick="Match.velocidad(1)">x1</button>
+      <button class="btn" onclick="Match.velocidad(3)">x3</button>
+      <button class="btn" onclick="Match.velocidad(10)">x10</button>
+      <button class="btn btn-sec" onclick="Match.saltar()">SALTAR AL FINAL ⏭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== RESULTADOS DE LA JORNADA ===== -->
+<div id="screen-resultados" class="screen">
+  <div class="panel-grande">
+    <h2 class="titulo-seccion" id="res-titulo">RESULTADOS · JORNADA X</h2>
+    <div id="res-cuerpo" class="resultados-grid"></div>
+    <div class="acciones-panel">
+      <button class="btn btn-principal" onclick="UI.continuarTrasResultados()">CONTINUAR ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== FIN DE TEMPORADA ===== -->
+<div id="screen-finTemporada" class="screen">
+  <div class="panel-grande" id="fin-cuerpo"></div>
+</div>
+
+<!-- ===== MODAL GENÉRICO ===== -->
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div class="modal" id="modal-caja"></div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/season.js"></script>
+<script src="js/match.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

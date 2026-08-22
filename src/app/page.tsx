@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface DriveRom {
   id: string;
@@ -27,6 +27,30 @@ const CORE_LABEL: Record<string, string> = {
 function thumbUrl(core: string, target: string, kind: 'Named_Boxarts' | 'Named_Snaps'): string {
   const sys = SYS_BY_CORE[core] ?? SYS_BY_CORE.snes;
   return `https://thumbnails.libretro.com/${encodeURIComponent(sys)}/${kind}/${encodeURIComponent(target)}.png`;
+}
+
+// Juego web propio: manager de fútbol estilo clásico, servido desde /public/pcfutbol
+const PCF_COVER =
+  'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Retro%20DOS%20VGA%20football%20management%20simulation%20video%20game%20cover%20art%20from%20the%2090s%2C%20green%20pixelated%20soccer%20pitch%20viewed%20from%20above%20with%20tiny%20pixel%20players%2C%20vintage%20scoreboard%2C%20dark%20navy%20blue%20background%2C%20chunky%20pixel%20art%2C%20nostalgic%20Spanish%20computer%20game%20aesthetic%2C%20no%20text&image_size=portrait_4_3';
+
+function WebGameCard() {
+  return (
+    <a className="game" href="/pcfutbol/">
+      <div className="cover">
+        <img src={PCF_COVER} alt="PC Fútbol 2026" loading="lazy" />
+        <span className="sys">MANAGER</span>
+        <div className="play">
+          <span className="playbtn">▶</span>
+        </div>
+      </div>
+      <span className="title">PC Fútbol 2026</span>
+    </a>
+  );
+}
+
+// Normaliza para buscar: minúsculas y sin acentos.
+function norm(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
 function GameCard({ rom, biosId }: { rom: DriveRom; biosId?: string | null }) {
@@ -82,6 +106,8 @@ export default function Home() {
   const [roms, setRoms] = useState<DriveRom[]>([]);
   const [biosId, setBiosId] = useState<string | null>(null);
   const [driveState, setDriveState] = useState<'idle' | 'ok' | 'error'>('idle');
+  const [filter, setFilter] = useState<string>('all');
+  const [query, setQuery] = useState('');
 
   const loadDrive = useCallback(async () => {
     setDriveState('idle');
@@ -101,6 +127,26 @@ export default function Home() {
     loadDrive();
   }, [loadDrive]);
 
+  // Plataformas presentes en la biblioteca cargada (para los filtros del nav).
+  const platforms = useMemo(
+    () => Object.keys(CORE_LABEL).filter((c) => roms.some((r) => (r.core ?? 'snes') === c)),
+    [roms],
+  );
+
+  const shown = useMemo(() => {
+    const q = norm(query.trim());
+    return roms.filter((r) => {
+      if (filter !== 'all' && (r.core ?? 'snes') !== filter) return false;
+      if (!q) return true;
+      return norm(r.name).includes(q);
+    });
+  }, [roms, filter, query]);
+
+  // Si la plataforma filtrada desaparece tras recargar, volvemos a "Todos".
+  useEffect(() => {
+    if (filter !== 'all' && !platforms.includes(filter)) setFilter('all');
+  }, [platforms, filter]);
+
   return (
     <div className="hub">
       <header className="nav">
@@ -108,7 +154,21 @@ export default function Home() {
           JUEGOS<em>Z</em>
         </a>
         <nav className="links">
-          <span className="chip">🎮 RETRO</span>
+          <button
+            className={`fbtn${filter === 'all' ? ' on' : ''}`}
+            onClick={() => setFilter('all')}
+          >
+            Todos
+          </button>
+          {platforms.map((c) => (
+            <button
+              key={c}
+              className={`fbtn${filter === c ? ' on' : ''}`}
+              onClick={() => setFilter(c)}
+            >
+              {CORE_LABEL[c]}
+            </button>
+          ))}
         </nav>
       </header>
 
@@ -124,11 +184,18 @@ export default function Home() {
       <main>
         <div className="section-head">
           <h2>Biblioteca</h2>
-          {driveState === 'ok' && roms.length > 0 && (
+          {driveState === 'ok' && shown.length > 0 && (
             <span className="count">
-              {roms.length} {roms.length === 1 ? 'juego' : 'juegos'}
+              {shown.length} {shown.length === 1 ? 'juego' : 'juegos'}
             </span>
           )}
+          <input
+            className="search"
+            type="search"
+            placeholder="Buscar juego…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
         </div>
 
         {driveState === 'idle' && (
@@ -150,9 +217,16 @@ export default function Home() {
           <p className="status">Todavía no hay juegos. Sube ROMs a la carpeta de Drive (raíz = SNES, o en subcarpetas: Arcade, Mega Drive, NES…)</p>
         )}
 
-        {roms.length > 0 && (
+        {driveState === 'ok' && roms.length > 0 && shown.length === 0 && query.trim() !== '' && (
+          <p className="status">Sin resultados para «{query.trim()}».</p>
+        )}
+
+        {driveState === 'ok' && (
           <section className="grid">
-            {roms.map((r) => (
+            {(query.trim() === '' || norm('pc futbol 2026').includes(norm(query.trim()))) && (
+              <WebGameCard />
+            )}
+            {shown.map((r) => (
               <GameCard key={r.id} rom={r} />
             ))}
           </section>
@@ -167,7 +241,7 @@ export default function Home() {
           Las ROMs son responsabilidad de cada usuario: utiliza únicamente copias de
           seguridad de juegos que poseas. Este sitio no almacena ni distribuye juegos.
         </p>
-        <p className="tech">Emulación por EmulatorJS · núcleo snes9x</p>
+        <p className="tech">Mis juegos favoritos de niño</p>
       </footer>
 
       <style jsx global>{`
@@ -198,11 +272,25 @@ export default function Home() {
           background: linear-gradient(90deg, #a78bfa, #e879f9);
           -webkit-background-clip: text; background-clip: text; color: transparent;
         }
-        .chip {
-          font-size: 11px; letter-spacing: 1.2px; font-weight: 800;
-          padding: 6px 13px; border-radius: 999px; color: #fff;
-          background: linear-gradient(90deg, #7c3aed, #c026d3);
-          box-shadow: 0 0 16px rgba(192,38,211,.4);
+        .links {
+          display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end;
+        }
+        .fbtn {
+          font-family: inherit; font-size: 11px; letter-spacing: 1px; font-weight: 800;
+          padding: 6px 14px; border-radius: 999px; cursor: pointer;
+          color: #c4b5fd; background: rgba(124,58,237,.08);
+          border: 1px solid #37265c; transition: all .15s ease;
+        }
+        .fbtn:hover { border-color: #a78bfa; color: #fff; }
+        .fbtn.on {
+          color: #fff; background: linear-gradient(90deg, #7c3aed, #c026d3);
+          border-color: transparent; box-shadow: 0 0 16px rgba(192,38,211,.4);
+        }
+        @media (max-width: 640px) {
+          .nav { flex-wrap: wrap; padding: 12px 16px; }
+          .links { width: 100%; justify-content: center; }
+          .search { width: 100%; max-width: none; order: 3; margin-left: 0; margin-top: 10px; }
+          .section-head { flex-wrap: wrap; row-gap: 0; }
         }
 
         /* ─── Hero ─── */
@@ -233,6 +321,17 @@ export default function Home() {
           font-size: 11.5px; font-weight: 700; color: #77689f;
           padding: 3px 10px; border-radius: 999px; border: 1px solid #37265c;
         }
+        .search {
+          margin-left: auto;
+          width: 230px; max-width: 45%;
+          padding: 7px 14px; border-radius: 999px;
+          background: #120a20; color: #e8dff5;
+          border: 1px solid #37265c;
+          font-family: inherit; font-size: 12.5px; font-weight: 600; letter-spacing: .3px;
+          outline: none; transition: border-color .15s ease, box-shadow .15s ease;
+        }
+        .search::placeholder { color: #77689f; }
+        .search:focus { border-color: #a78bfa; box-shadow: 0 0 14px rgba(124,58,237,.35); }
         .status { text-align: center; color: #9d8bc7; margin-top: 60px; font-size: 15px; }
         .status.error p { margin-bottom: 14px; color: #fca5a5; }
         .status button {
