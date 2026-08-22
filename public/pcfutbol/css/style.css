@@ -524,12 +524,14 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
   gap: 16px;
   grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
   grid-template-areas:
-    "tabs  spot"
-    "lista spot"
-    "lista form"
-    "lista acciones";
+    "titulo titulo"
+    "tabs   spot"
+    "lista  spot"
+    "lista  form"
+    "lista  acciones";
   align-items: start;
 }
+#screen-nueva .titulo-seccion { grid-area: titulo; margin-bottom: 2px; }
 #screen-nueva .selector-div { grid-area: tabs; margin: 0; flex-wrap: wrap; }
 #screen-nueva .grid-equipos {
   grid-area: lista;
@@ -615,6 +617,7 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
   #screen-nueva .panel-grande {
     grid-template-columns: 1fr;
     grid-template-areas:
+      "titulo"
       "tabs"
       "spot"
       "lista"
