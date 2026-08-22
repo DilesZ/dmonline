@@ -25,6 +25,8 @@ const CORE_LABEL: Record<string, string> = {
 };
 
 function thumbUrl(core: string, target: string, kind: 'Named_Boxarts' | 'Named_Snaps'): string {
+  // Carátula con URL absoluta (p. ej. de otro sistema de LibretRO): se usa tal cual.
+  if (/^https?:\/\//.test(target)) return target;
   const sys = SYS_BY_CORE[core] ?? SYS_BY_CORE.snes;
   return `https://thumbnails.libretro.com/${encodeURIComponent(sys)}/${kind}/${encodeURIComponent(target)}.png`;
 }
