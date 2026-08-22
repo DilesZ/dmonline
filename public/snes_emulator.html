@@ -100,8 +100,9 @@
     window.EJS_backgroundColor = '#0b0514';
 
     // BIOS opcional vía proxy (p. ej. neogeo.zip para el núcleo arcade).
+    // El nombre del fichero va en la ruta: el núcleo lo usa para identificar el BIOS.
     if (bios && /^[A-Za-z0-9_-]{10,}$/.test(bios)) {
-      window.EJS_biosUrl = '/api/drive?action=file&id=' + bios;
+      window.EJS_biosUrl = '/api/rom/neogeo.zip?id=' + bios;
     }
 
     var s = document.createElement('script');

@@ -27,7 +27,7 @@ function GameCard({ rom, biosId }: { rom: DriveRom; biosId?: string | null }) {
   const core = rom.core ?? 'snes';
 
   const params = new URLSearchParams({
-    rom: `/api/drive?action=file&id=${rom.id}`,
+    rom: `/api/rom/${encodeURIComponent(rom.name)}?id=${rom.id}`,
     name: rom.name,
     core,
   });
