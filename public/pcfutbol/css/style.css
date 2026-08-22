@@ -221,6 +221,14 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
 .slot-jugador {
   position: absolute; transform: translate(-50%, -50%);
   width: 74px; text-align: center; cursor: pointer; z-index: 2;
+  touch-action: none;
+}
+.slot-jugador.moviendo { cursor: grabbing; z-index: 20; }
+.slot-jugador.moviendo::before {
+  content: ''; position: absolute; left: 50%; top: 17px;
+  width: 118px; height: 118px; transform: translate(-50%, -50%);
+  border: 1.5px dashed #ffffff77; border-radius: 50%;
+  pointer-events: none;
 }
 .slot-circulo {
   width: 34px; height: 34px; margin: 0 auto;

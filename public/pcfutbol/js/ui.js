@@ -345,10 +345,11 @@ UI.tabTacticas = function () {
   const campo = slots.map((s, i) => {
     const j = map[tac.once[i]];
     const fueraPos = j && j.pos !== s.pos;
+    const p = (tac.posiciones && tac.posiciones[i]) || s;
     const sel = UI.tacSelSlot === i ? ' slot-seleccionado' : '';
-    return `<div class="slot-jugador ${!j ? 'slot-vacio' : fueraPos ? 'slot-fuera' : ''}${sel}" style="left:${s.x}%;top:${s.y}%" draggable="true"
-      onclick="UI.clickSlot(${i})"
-      ondragstart="UI.dragStartSlot(event,${i})" ondragover="event.preventDefault()" ondragenter="this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')"
+    return `<div class="slot-jugador ${!j ? 'slot-vacio' : fueraPos ? 'slot-fuera' : ''}${sel}" style="left:${p.x}%;top:${p.y}%"
+      onpointerdown="UI.slotPointerDown(event,${i})"
+      ondragover="event.preventDefault()" ondragenter="this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')"
       ondrop="UI.dropSlot(event,${i})">
       <div class="slot-circulo">${j ? (fueraPos ? j.media + '!' : j.media) : s.pos}</div>
       <div class="slot-nombre">${j ? j.nombre.split(' ')[0] + ' ' + (j.nombre.split(' ')[1]?.[0] ?? '') + '.' : '(' + s.pos + ')'}</div>
@@ -378,12 +379,14 @@ UI.tabTacticas = function () {
         ${Object.entries(DATA.MENTALIDADES).map(([k, m]) => `<option value="${k}" ${k === tac.mentalidad ? 'selected' : ''}>${m.nom}</option>`).join('')}
       </select>
       <button class="btn" onclick="UI.autoAlinearBtn()">⚙ ALINEACIÓN AUTOMÁTICA</button>
+      ${tac.posiciones ? '<button class="btn btn-sec" onclick="UI.resetPosiciones()">⟲ POSICIONES BASE</button>' : ''}
     </div>
     <div class="tacticas-layout">
       <div class="campo">${campo}</div>
       <div class="card">
         <h3>SUPLENTES Y RESERVAS</h3>
         <p style="color:var(--gris);font-size:12px;margin-bottom:8px">Arrastra un suplente a cualquier hueco del campo, o pínchalo y luego elige el hueco donde quieras ponerlo. También puedes intercambiar dos jugadores del once arrastrando uno sobre otro.</p>
+        <p style="color:var(--gris);font-size:12px;margin-bottom:8px">Para ajustar la posición en el campo, arrastra a un jugador: se mueve libremente sin salirse de su función (radio máximo alrededor de su puesto en la formación).</p>
         <div class="lista-once">${lista || '<p style="color:var(--gris)">No hay más jugadores disponibles.</p>'}</div>
       </div>
     </div>`;
@@ -433,11 +436,7 @@ UI.clickSuplente = function (pid) {
   UI.renderTab();
 };
 
-/* ----- Arrastrar y soltar ----- */
-UI.dragStartSlot = function (ev, i) {
-  ev.dataTransfer.setData('text/plain', 'slot:' + i);
-  ev.dataTransfer.effectAllowed = 'move';
-};
+/* ----- Arrastrar y soltar (banquillo -> campo) ----- */
 UI.dragStartBench = function (ev, pid) {
   ev.dataTransfer.setData('text/plain', 'bench:' + pid);
   ev.dataTransfer.effectAllowed = 'move';
@@ -445,25 +444,99 @@ UI.dragStartBench = function (ev, pid) {
 UI.dropSlot = function (ev, i) {
   ev.preventDefault();
   const data = String(ev.dataTransfer.getData('text/plain') || '');
-  const [tipo, valor] = data.split(':');
-  const st = UI.st, tac = st.tactics[st.userTeam];
-  if (tipo === 'slot') {
-    const origen = +valor;
-    if (origen !== i) {
-      [tac.once[origen], tac.once[i]] = [tac.once[i], tac.once[origen]];
-      UI.autosave();
-    }
-  } else if (tipo === 'bench') {
-    UI.ponerEnSlot(i, +valor);
-  }
+  if (!data.startsWith('bench:')) return;
+  UI.ponerEnSlot(i, +data.split(':')[1]);
   UI.tacSelSlot = null;
   UI.tacSelBench = null;
+  UI.renderTab();
+};
+
+/* ----- Movimiento libre dentro del rango del rol -----
+   Arrastra un jugador para ajustar su posición en el campo sin
+   salirse de su función: como máximo RANGO_POS (%) alrededor de la
+   posición base de su hueco en la formación. Tap = seleccionar,
+   soltar sobre otro jugador = intercambiar. Las posiciones quedan
+   ligadas al rol (hueco), no al jugador. */
+UI.RANGO_POS = 16;
+
+UI.baseSlot = function (i) {
+  const tac = UI.st.tactics[UI.st.userTeam];
+  const f = tac.formacion in DATA.FORMACIONES ? tac.formacion : '4-4-2';
+  return DATA.FORMACIONES[f][i];
+};
+
+UI.clampRango = function (i, x, y) {
+  const base = UI.baseSlot(i);
+  let dx = x - base.x, dy = y - base.y;
+  const d = Math.hypot(dx, dy);
+  if (d > UI.RANGO_POS) { dx = dx / d * UI.RANGO_POS; dy = dy / d * UI.RANGO_POS; }
+  return { x: Math.round(Math.max(4, Math.min(96, base.x + dx)) * 10) / 10,
+           y: Math.round(Math.max(5, Math.min(95, base.y + dy)) * 10) / 10 };
+};
+
+UI.slotPointerDown = function (ev, i) {
+  if (ev.button !== undefined && ev.button !== 0) return;
+  ev.preventDefault();
+  const el = ev.currentTarget;
+  const st = UI.st, tac = st.tactics[st.userTeam];
+  const rectCampo = el.closest('.campo').getBoundingClientRect();
+  const origX = parseFloat(el.style.left), origY = parseFloat(el.style.top);
+  const sx = ev.clientX, sy = ev.clientY;
+  let moved = false;
+
+  const slotBajo = e => {
+    for (const t of document.elementsFromPoint(e.clientX, e.clientY)) {
+      if (t.classList && t.classList.contains('slot-jugador') && t !== el) {
+        const m = (t.getAttribute('onpointerdown') || '').match(/slotPointerDown\(event,(\d+)\)/);
+        if (m) return { i: +m[1], el: t };
+      }
+    }
+    return null;
+  };
+
+  const enMove = e => {
+    if (!moved && Math.hypot(e.clientX - sx, e.clientY - sy) < 6) return;
+    moved = true;
+    el.classList.add('moviendo');
+    const p = UI.clampRango(i, origX + (e.clientX - sx) / rectCampo.width * 100,
+                              origY + (e.clientY - sy) / rectCampo.height * 100);
+    el.style.left = p.x + '%'; el.style.top = p.y + '%';
+    document.querySelectorAll('.slot-jugador.drop-target').forEach(x => x.classList.remove('drop-target'));
+    const otro = slotBajo(e);
+    if (otro) otro.el.classList.add('drop-target');
+  };
+
+  const enUp = e => {
+    window.removeEventListener('pointermove', enMove);
+    window.removeEventListener('pointerup', enUp);
+    el.classList.remove('moviendo', 'drop-target');
+    if (!moved) { UI.clickSlot(i); return; }            // tap normal: selección/intercambio
+    const otro = slotBajo(e);
+    if (otro) {                                          // soltado sobre otro jugador: intercambio
+      [tac.once[i], tac.once[otro.i]] = [tac.once[otro.i], tac.once[i]];
+      UI.autosave(); UI.renderTab(); return;
+    }
+    // guardar la posición personalizada de este rol
+    tac.posiciones = tac.posiciones || {};
+    tac.posiciones[i] = UI.clampRango(i, origX + (e.clientX - sx) / rectCampo.width * 100,
+                                         origY + (e.clientY - sy) / rectCampo.height * 100);
+    UI.autosave(); UI.renderTab();
+  };
+
+  window.addEventListener('pointermove', enMove);
+  window.addEventListener('pointerup', enUp);
+};
+
+UI.resetPosiciones = function () {
+  delete UI.st.tactics[UI.st.userTeam].posiciones;
+  UI.autosave();
   UI.renderTab();
 };
 
 UI.setFormacion = function (f) {
   const st = UI.st, tac = st.tactics[st.userTeam];
   tac.formacion = f;
+  delete tac.posiciones; // la nueva formación tiene otros roles base
   // Reordenar jugadores por posición natural
   const map = Object.fromEntries(st.players.map(p => [p.id, p]));
   const slots = DATA.FORMACIONES[f];
