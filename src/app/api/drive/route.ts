@@ -27,6 +27,31 @@ function coreForFolder(name: string, current: string): string {
   return current;
 }
 
+// Google limita peticiones sin cabeceras de navegador y por IP (las IPs de
+// Vercel reciben mucho tráfico). UA de navegador + caché + reintentos lo mitigan.
+const BROWSER_HEADERS = {
+  'user-agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
+  'accept-language': 'es-ES,es;q=0.9,en;q=0.8',
+};
+
+async function driveFetch(url: string): Promise<Response> {
+  return fetch(url, {
+    cache: 'no-store',
+    headers: BROWSER_HEADERS,
+    signal: AbortSignal.timeout(15000),
+  });
+}
+
+interface ListData {
+  roms: Rom[];
+  biosId?: string;
+}
+
+// Caché en memoria (vive mientras la instancia esté caliente).
+let listCache: { at: number; data: ListData } | null = null;
+const LIST_TTL_MS = 5 * 60 * 1000;
+
 async function listFolder(
   folderId: string,
   core: string,
@@ -34,9 +59,8 @@ async function listFolder(
   seen: Set<string>,
   roms: Rom[],
 ): Promise<string | undefined> {
-  const res = await fetch(
+  const res = await driveFetch(
     `https://drive.google.com/embeddedfolderview?id=${encodeURIComponent(folderId)}`,
-    { cache: 'no-store' },
   );
   if (!res.ok) throw new Error(`Drive respondió ${res.status}`);
   const html = await res.text();
@@ -105,9 +129,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'ID de fichero inválido' }, { status: 400 });
     }
     try {
-      const upstream = await fetch(
+      const upstream = await driveFetch(
         `https://drive.usercontent.google.com/download?id=${encodeURIComponent(id)}&export=download&confirm=t`,
-        { cache: 'no-store' },
       );
       const type = upstream.headers.get('content-type') ?? '';
       // Si Drive devuelve HTML en vez del binario, el fichero no es público.
