@@ -33,6 +33,8 @@ function GameCard({ rom, biosId }: { rom: DriveRom; biosId?: string | null }) {
   const base = rom.name.replace(/\.[^.]+$/, '');
   const [stage, setStage] = useState(0); // 0 = boxart, 1 = snapshot, 2 = placeholder
   const core = rom.core ?? 'snes';
+  // En arcade la carátula se llama como la descripción del set, no como el zip.
+  const coverName = core === 'arcade' && rom.cover ? rom.cover : base;
 
   const params = new URLSearchParams({
     rom: `/api/rom/${encodeURIComponent(rom.name)}?id=${rom.id}`,
