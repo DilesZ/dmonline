@@ -332,9 +332,11 @@ UI.toggleVenta = function (id) {
 
 /* ---------- TAB TÁCTICAS ---------- */
 UI.tacSelSlot = null;
+UI.tacSelBench = null;
 UI.tabTacticas = function () {
   const st = UI.st;
   UI.tacSelSlot = null;
+  UI.tacSelBench = null;
   const tac = st.tactics[st.userTeam];
   const formacion = tac.formacion in DATA.FORMACIONES ? tac.formacion : '4-4-2';
   const slots = DATA.FORMACIONES[formacion];
@@ -343,7 +345,11 @@ UI.tabTacticas = function () {
   const campo = slots.map((s, i) => {
     const j = map[tac.once[i]];
     const fueraPos = j && j.pos !== s.pos;
-    return `<div class="slot-jugador ${!j ? 'slot-vacio' : fueraPos ? 'slot-fuera' : ''}" style="left:${s.x}%;top:${s.y}%" onclick="UI.clickSlot(${i})">
+    const sel = UI.tacSelSlot === i ? ' slot-seleccionado' : '';
+    return `<div class="slot-jugador ${!j ? 'slot-vacio' : fueraPos ? 'slot-fuera' : ''}${sel}" style="left:${s.x}%;top:${s.y}%" draggable="true"
+      onclick="UI.clickSlot(${i})"
+      ondragstart="UI.dragStartSlot(event,${i})" ondragover="event.preventDefault()" ondragenter="this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')"
+      ondrop="UI.dropSlot(event,${i})">
       <div class="slot-circulo">${j ? (fueraPos ? j.media + '!' : j.media) : s.pos}</div>
       <div class="slot-nombre">${j ? j.nombre.split(' ')[0] + ' ' + (j.nombre.split(' ')[1]?.[0] ?? '') + '.' : '(' + s.pos + ')'}</div>
     </div>`;
@@ -352,7 +358,9 @@ UI.tabTacticas = function () {
   const disponibles = st.players.filter(p => p.equipo === st.userTeam && p.lesion === 0 && p.sancion === 0 && !tac.once.includes(p.id))
     .sort((a, b) => ENGINE.rendimiento(b) - ENGINE.rendimiento(a));
   const lista = disponibles.map(j => `
-    <div class="fila-once" onclick="UI.clickSuplente(${j.id})">
+    <div class="fila-once ${UI.tacSelBench === j.id ? 'sel' : ''}" draggable="true"
+      onclick="UI.clickSuplente(${j.id})"
+      ondragstart="UI.dragStartBench(event,${j.id})">
       <span class="pos-tag">${j.pos}</span>
       <span style="flex:1">${j.nombre}</span>
       <span class="media-num">${j.media}</span>
@@ -375,21 +383,38 @@ UI.tabTacticas = function () {
       <div class="campo">${campo}</div>
       <div class="card">
         <h3>SUPLENTES Y RESERVAS</h3>
-        <p style="color:var(--gris);font-size:12px;margin-bottom:8px">Clic en un hueco del campo y luego en un jugador para cambiarlo. Rojo = fuera de posición (peor rendimiento).</p>
+        <p style="color:var(--gris);font-size:12px;margin-bottom:8px">Arrastra un suplente a cualquier hueco del campo, o pínchalo y luego elige el hueco donde quieras ponerlo. También puedes intercambiar dos jugadores del once arrastrando uno sobre otro.</p>
         <div class="lista-once">${lista || '<p style="color:var(--gris)">No hay más jugadores disponibles.</p>'}</div>
       </div>
     </div>`;
 };
 
+// Coloca al suplente `pid` en el hueco `i`; quien ocupaba ese hueco pasa al banquillo
+UI.ponerEnSlot = function (i, pid) {
+  const st = UI.st, tac = st.tactics[st.userTeam];
+  if (!pid || tac.once.includes(pid)) return;
+  const sale = tac.once[i];
+  tac.once[i] = pid;
+  tac.suplentes = tac.suplentes.filter(id => id !== pid);
+  if (sale) tac.suplentes.push(sale);
+  UI.autosave();
+};
+
 UI.clickSlot = function (i) {
   const st = UI.st, tac = st.tactics[st.userTeam];
-  if (UI.tacSelSlot === null) {
+  if (UI.tacSelBench !== null) {
+    // Hay un suplente seleccionado: colocarlo en este hueco
+    UI.ponerEnSlot(i, UI.tacSelBench);
+    UI.tacSelBench = null;
+    UI.tacSelSlot = null;
+  } else if (UI.tacSelSlot === null) {
     UI.tacSelSlot = i;
   } else if (UI.tacSelSlot === i) {
     UI.tacSelSlot = null;
   } else {
     [tac.once[UI.tacSelSlot], tac.once[i]] = [tac.once[i], tac.once[UI.tacSelSlot]];
     UI.tacSelSlot = null;
+    UI.autosave();
   }
   UI.renderTab();
 };
@@ -397,27 +422,42 @@ UI.clickSlot = function (i) {
 UI.clickSuplente = function (pid) {
   const st = UI.st, tac = st.tactics[st.userTeam];
   if (UI.tacSelSlot !== null) {
-    const sale = tac.once[UI.tacSelSlot];
-    tac.once[UI.tacSelSlot] = pid;
-    tac.suplentes = tac.suplentes.filter(id => id !== pid);
-    if (sale) tac.suplentes.push(sale);
+    // Hueco ya seleccionado: colocar aquí
+    UI.ponerEnSlot(UI.tacSelSlot, pid);
     UI.tacSelSlot = null;
+    UI.tacSelBench = null;
   } else {
-    // sustituir al jugador de menor media del mismo puesto si existe, si no el peor del once
-    const map = Object.fromEntries(st.players.map(p => [p.id, p]));
-    const entra = map[pid];
-    let idx = tac.once.findIndex(id => map[id]?.pos === entra.pos);
-    if (idx < 0) {
-      let peor = Infinity, pi = 0;
-      tac.once.forEach((id, k) => { const m = map[id]?.media ?? 0; if (m < peor) { peor = m; pi = k; } });
-      idx = pi;
-    }
-    const sale = tac.once[idx];
-    tac.once[idx] = pid;
-    tac.suplentes = tac.suplentes.filter(id => id !== pid);
-    if (sale) tac.suplentes.push(sale);
+    // Seleccionar suplente para luego elegir destino (sin sustitución automática)
+    UI.tacSelBench = UI.tacSelBench === pid ? null : pid;
   }
-  UI.autosave();
+  UI.renderTab();
+};
+
+/* ----- Arrastrar y soltar ----- */
+UI.dragStartSlot = function (ev, i) {
+  ev.dataTransfer.setData('text/plain', 'slot:' + i);
+  ev.dataTransfer.effectAllowed = 'move';
+};
+UI.dragStartBench = function (ev, pid) {
+  ev.dataTransfer.setData('text/plain', 'bench:' + pid);
+  ev.dataTransfer.effectAllowed = 'move';
+};
+UI.dropSlot = function (ev, i) {
+  ev.preventDefault();
+  const data = String(ev.dataTransfer.getData('text/plain') || '');
+  const [tipo, valor] = data.split(':');
+  const st = UI.st, tac = st.tactics[st.userTeam];
+  if (tipo === 'slot') {
+    const origen = +valor;
+    if (origen !== i) {
+      [tac.once[origen], tac.once[i]] = [tac.once[i], tac.once[origen]];
+      UI.autosave();
+    }
+  } else if (tipo === 'bench') {
+    UI.ponerEnSlot(i, +valor);
+  }
+  UI.tacSelSlot = null;
+  UI.tacSelBench = null;
   UI.renderTab();
 };
 

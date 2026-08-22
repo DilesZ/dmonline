@@ -93,35 +93,41 @@ button { cursor: pointer; font-family: inherit; }
 .btn-mini { padding: 6px 11px; font-size: 15px; }
 .btn-peligro { border-color: var(--rojo); color: var(--rojo); }
 
-/* ===== NUEVA PARTIDA ===== */
+/* ===== NUEVA PARTIDA: selector de equipo ===== */
 .selector-div { display: flex; gap: 8px; margin-bottom: 14px; }
 .grid-equipos {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 8px;
-  max-height: 42vh;
-  overflow-y: auto;
-  padding-right: 4px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+  justify-items: center;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
 }
 .eq-card {
-  display: flex; align-items: center; gap: 10px;
-  background: var(--panel2);
+  background: var(--panel);
   border: 2px solid var(--borde);
-  padding: 8px 10px;
+  border-radius: 12px;
+  padding: 10px;
   cursor: pointer;
-  transition: border-color .1s;
+  transition: transform .15s, box-shadow .15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
-.eq-card:hover { border-color: var(--cyan); }
+.eq-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
 .eq-card.sel { border-color: var(--amarillo); background: #23236b; }
 .eq-escudo {
-  width: 34px; height: 34px; flex-shrink: 0;
+  width: 48px; height: 48px; flex-shrink: 0;
   border: 2px solid #ffffff33;
   display: flex; align-items: center; justify-content: center;
-  font-family: 'VT323', monospace; font-size: 15px; color: #fff;
+  font-family: 'VT323', monospace; font-size: 18px; color: #fff;
   text-shadow: 1px 1px 0 #000;
+  margin-bottom: 8px;
 }
-.eq-nom { font-size: 13px; line-height: 1.15; }
-.eq-str { color: var(--gris); font-size: 11px; }
+.eq-nom { font-size: 14px; line-height: 1.15; text-align: center; width: 100%; }
+.eq-str { color: var(--gris); font-size: 11px; text-align: center; width: 100%; }
 .fila-form { margin-top: 16px; display: flex; align-items: center; gap: 12px; }
 .fila-form label { color: var(--cyan); font-size: 12px; letter-spacing: 1px; }
 input[type="text"], input[type="number"], select {
@@ -229,6 +235,8 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
 .slot-fuera .slot-circulo { background: var(--rojo); color: #fff; }
 .slot-vacio .slot-circulo { background: transparent; color: #ffffff99; border-style: dashed; }
 .slot-seleccionado .slot-circulo { box-shadow: 0 0 0 3px var(--cyan); }
+.slot-jugador.drop-target .slot-circulo { box-shadow: 0 0 0 3px var(--amarillo); transform: scale(1.08); }
+.slot-jugador[draggable="true"] { -webkit-user-drag: element; user-select: none; }
 
 .lista-once { display: flex; flex-direction: column; gap: 4px; max-height: 46vh; overflow-y: auto; }
 .fila-once {
