@@ -428,3 +428,169 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
 ::-webkit-scrollbar-track { background: #0d0d33; }
 ::-webkit-scrollbar-thumb { background: var(--borde); border: 2px solid #0d0d33; }
 ::-webkit-scrollbar-thumb:hover { background: var(--amarillo); }
+
+/* ============================================================
+   SHELL ARCADE — rediseño de menú, selección, carga y ayuda
+   (con alcance por ID: no afecta al hub ni al partido)
+   ============================================================ */
+#screen-menu, #screen-nueva, #screen-cargar, #screen-ayuda {
+  position: relative;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(124,58,237,.30), transparent 65%),
+    radial-gradient(ellipse 50% 35% at 88% 108%, rgba(192,38,211,.16), transparent 70%),
+    linear-gradient(180deg, #0a0618 0%, #060310 100%);
+}
+#screen-menu::after, #screen-nueva::after, #screen-cargar::after, #screen-ayuda::after {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 5;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,.018) 3px 6px);
+}
+
+/* ----- MENÚ PRINCIPAL ----- */
+#screen-menu .logo-pcf {
+  text-shadow:
+    0 0 22px rgba(255,210,63,.55),
+    4px 4px 0 #7a1010,
+    8px 8px 0 rgba(0,0,0,.55);
+  animation: logoPulse 3.2s ease-in-out infinite;
+}
+@keyframes logoPulse {
+  0%, 100% { filter: drop-shadow(0 0 14px rgba(255,210,63,.25)); }
+  50% { filter: drop-shadow(0 0 30px rgba(255,210,63,.45)); }
+}
+#screen-menu .logo-sub { letter-spacing: 5px; text-transform: uppercase; }
+.menu-buttons .btn-menu {
+  border-radius: 999px;
+  padding: 15px 26px;
+  font-weight: 800;
+  background: rgba(26,26,82,.5);
+  backdrop-filter: blur(4px);
+  box-shadow: inset 0 0 0 1px rgba(167,139,250,.28), 0 8px 26px rgba(0,0,0,.35);
+}
+.menu-buttons .btn-menu:hover {
+  background: var(--amarillo);
+  color: #111;
+  transform: translateX(6px) scale(1.02);
+  box-shadow: 0 12px 36px rgba(255,210,63,.35);
+}
+.menu-footer { text-transform: uppercase; }
+
+/* ----- PANELES ARCADE ----- */
+#screen-nueva .panel-grande, #screen-cargar .panel-grande,
+#screen-ayuda .panel-grande, #screen-finTemporada .panel-grande {
+  background: linear-gradient(180deg, rgba(24,13,48,.96), rgba(10,6,24,.97));
+  border: 1px solid rgba(167,139,250,.30);
+  border-radius: 26px;
+  box-shadow: 0 26px 70px rgba(0,0,0,.55), 0 0 90px rgba(124,58,237,.12);
+  padding: 26px;
+}
+.titulo-seccion { letter-spacing: 2px; text-shadow: 0 0 26px rgba(255,210,63,.35); }
+.texto-ayuda p { line-height: 1.75; }
+
+/* ----- NUEVA PARTIDA: rail + spotlight ----- */
+#screen-nueva .panel-grande {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  grid-template-areas:
+    "tabs  spot"
+    "lista spot"
+    "lista form"
+    "lista acciones";
+  align-items: start;
+}
+#screen-nueva .selector-div { grid-area: tabs; margin: 0; flex-wrap: wrap; }
+#screen-nueva .grid-equipos {
+  grid-area: lista;
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 58vh; overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-width: thin; scrollbar-color: var(--borde) transparent;
+}
+#screen-nueva .grid-equipos::-webkit-scrollbar { width: 8px; }
+#screen-nueva .grid-equipos::-webkit-scrollbar-thumb { background: var(--borde); border-radius: 99px; }
+#screen-nueva .fila-form { grid-area: form; margin-top: 2px; align-items: center; }
+#screen-nueva #info-equipo-nueva { grid-area: spot; }
+#screen-nueva .acciones-panel { grid-area: acciones; }
+
+/* eq-card como fila de índice */
+#screen-nueva .eq-card {
+  flex-direction: row; align-items: center; gap: 13px;
+  border-radius: 14px;
+  padding: 7px 12px;
+  background: transparent;
+  border: 1px solid rgba(58,58,140,.55);
+  transition: background .13s ease, transform .13s ease, border-color .13s ease, box-shadow .13s ease;
+}
+#screen-nueva .eq-card:hover {
+  transform: translateX(4px);
+  background: rgba(124,58,237,.10);
+  box-shadow: none;
+}
+#screen-nueva .eq-card.sel {
+  border-color: rgba(255,210,63,.65);
+  background: linear-gradient(90deg, rgba(255,210,63,.10), transparent 70%);
+  box-shadow: inset 3px 0 0 var(--amarillo);
+}
+#screen-nueva .eq-card .eq-escudo {
+  width: 40px; height: 40px; font-size: 15px;
+  border-radius: 9px; margin-bottom: 0; overflow: hidden;
+}
+#screen-nueva .eq-card .eq-nom { font-size: 14.5px; }
+#screen-nueva .eq-card .eq-str { color: var(--gris); font-size: 11px; }
+
+/* Spotlight del equipo seleccionado */
+#info-equipo-nueva {
+  border: 1px solid rgba(167,139,250,.32);
+  border-radius: 22px;
+  background:
+    radial-gradient(120% 130% at 18% 0%, rgba(124,58,237,.20), rgba(9,5,22,.92) 70%);
+  box-shadow: inset 0 0 60px rgba(124,58,237,.08), 0 18px 44px rgba(0,0,0,.35);
+  padding: 30px 34px;
+  min-height: 240px;
+  display: flex; align-items: center; justify-content: center;
+}
+.spot-team { display: flex; align-items: center; gap: 26px; }
+.spot-team .spot-crest { width: 96px !important; height: 96px !important; border-radius: 20px !important; font-size: 26px !important; flex-shrink: 0; }
+.spot-tname {
+  font-family: 'VT323', monospace;
+  font-size: clamp(38px, 4.2vw, 58px);
+  line-height: .95;
+  color: #fff;
+  text-shadow: 0 0 34px rgba(124,58,237,.65), 2px 2px 0 rgba(0,0,0,.5);
+}
+.spot-tmeta { color: var(--gris); font-size: 13px; margin-top: 8px; letter-spacing: .4px; }
+.spot-tobj { margin-top: 14px; color: var(--amarillo); font-size: 14px; font-weight: 600; letter-spacing: .5px; }
+@media (max-width: 700px) {
+  .spot-team { flex-direction: column; text-align: center; }
+}
+
+/* ----- FILAS (cargas / ofertas) ----- */
+.oferta-caja {
+  border-radius: 12px;
+  border: 1px solid var(--borde);
+  background: rgba(26,26,82,.35);
+  padding: 11px 16px;
+  align-items: center;
+  transition: border-color .13s ease, background .13s ease;
+}
+.oferta-caja:hover { border-color: var(--amarillo); background: rgba(26,26,82,.55); }
+
+.btn-principal { box-shadow: 0 8px 26px rgba(255,210,63,.22); }
+.btn-principal:hover:not(:disabled) { transform: translateY(-1px); }
+
+/* ----- Responsive shell ----- */
+@media (max-width: 900px) {
+  #screen-nueva .panel-grande {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "tabs"
+      "spot"
+      "lista"
+      "form"
+      "acciones";
+  }
+  #info-equipo-nueva { min-height: 0; padding: 22px; }
+  #screen-nueva .grid-equipos { max-height: 46vh; }
+}

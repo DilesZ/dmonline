@@ -81,8 +81,15 @@ UI.selEquipoNueva = function (id, el) {
     DATA.EQUIPOS.filter(x => x.div === e.div).length
   );
   const info = $('#info-equipo-nueva');
-  info.innerHTML = `<b style="color:var(--amarillo)">${e.nom}</b> · ${e.ciudad} · Estadio ${e.est} (${e.cap.toLocaleString()} localidades)<br>
-    Objetivo de la directiva: <b>"${obj.texto}"</b>`;
+  info.innerHTML = `
+    <div class="spot-team">
+      ${UI.escudoHTML(e, 'eq-escudo spot-crest')}
+      <div>
+        <div class="spot-tname">${e.nom}</div>
+        <div class="spot-tmeta">${e.ciudad} · Estadio ${e.est} (${e.cap.toLocaleString('es-ES')} localidades) · MEDIA ${e.str}</div>
+        <div class="spot-tobj">OBJETIVO DE LA DIRECTIVA: "${obj.texto}"</div>
+      </div>
+    </div>`;
   info.classList.remove('hidden');
 };
 
