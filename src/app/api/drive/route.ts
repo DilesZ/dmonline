@@ -64,7 +64,13 @@ async function listFolder(
     }
 
     if (!ROM_EXT_RE.test(name)) continue;
-    roms.push({ id, name, core });
+    const rom: Rom = { id, name, core };
+    if (core === 'arcade') {
+      const setName = name.replace(/\.zip$/i, '').toLowerCase();
+      const cover = (arcadeCovers as Record<string, string>)[setName];
+      if (cover) rom.cover = cover;
+    }
+    roms.push(rom);
   }
   return biosId;
 }

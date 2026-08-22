@@ -6,9 +6,16 @@ interface DriveRom {
   id: string;
   name: string;
   core?: string;
+  cover?: string;
 }
 
-const SYS = 'Nintendo - Super Nintendo Entertainment System';
+// Carpeta de LibretRO que contiene las carátulas de cada sistema.
+const SYS_BY_CORE: Record<string, string> = {
+  snes: 'Nintendo - Super Nintendo Entertainment System',
+  nes: 'Nintendo - Nintendo Entertainment System',
+  segaMD: 'Sega - Mega Drive - Genesis',
+  arcade: 'FBNeo - Arcade Games',
+};
 
 const CORE_LABEL: Record<string, string> = {
   snes: 'SNES',
@@ -17,8 +24,9 @@ const CORE_LABEL: Record<string, string> = {
   nes: 'NES',
 };
 
-function thumbUrl(base: string, kind: 'Named_Boxarts' | 'Named_Snaps'): string {
-  return `https://thumbnails.libretro.com/${encodeURIComponent(SYS)}/${kind}/${encodeURIComponent(base)}.png`;
+function thumbUrl(core: string, target: string, kind: 'Named_Boxarts' | 'Named_Snaps'): string {
+  const sys = SYS_BY_CORE[core] ?? SYS_BY_CORE.snes;
+  return `https://thumbnails.libretro.com/${encodeURIComponent(sys)}/${kind}/${encodeURIComponent(target)}.png`;
 }
 
 function GameCard({ rom, biosId }: { rom: DriveRom; biosId?: string | null }) {
@@ -47,7 +55,7 @@ function GameCard({ rom, biosId }: { rom: DriveRom; biosId?: string | null }) {
       <div className="cover">
         {stage < 2 && (
           <img
-            src={thumbUrl(base, stage === 0 ? 'Named_Boxarts' : 'Named_Snaps')}
+            src={thumbUrl(core, coverName, stage === 0 ? 'Named_Boxarts' : 'Named_Snaps')}
             alt={base}
             loading="lazy"
             onError={() => setStage(stage + 1)}
