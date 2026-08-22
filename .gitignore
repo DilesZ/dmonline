@@ -58,3 +58,13 @@ AGENTS.md
 CLAUDE.md
 workspace-*
 .vercel
+.env*.local
+
+livelogs.txt
+proxyres.txt
+proxytest.txt
+v.txt
+clone.log
+extract.log
+dev.log
+server.log

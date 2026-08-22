@@ -3,7 +3,8 @@ import { unzipSync, zipSync } from 'fflate';
 
 // Proxy de descarga cuyo URL termina en el nombre real del fichero
 // (p. ej. /api/rom/snowbros.zip?id=...). FBNeo identifica el romset por el
-// nombre del fichero, así que la ruta debe conservarlo.
+// nombre del fichero, así que la ruta debe conservarlo. El nombre llega por
+// query (?name=) y un rewrite en next.config.ts mapea /api/rom/:name aquí.
 //
 // Con &extractbios=1 no sirve el fichero tal cual: descarga el zip de Drive,
 // extrae los ficheros BIOS de Neo Geo que contenga y devuelve un neogeo.zip.
@@ -52,15 +53,18 @@ async function streamFromDrive(id: string): Promise<Response | null> {
   return new Response(upstream.body, { status: 200, headers });
 }
 
-export async function GET(
-  req: NextRequest,
-  ctx: { params: Promise<{ name: string }> },
-) {
-  const { name } = await ctx.params;
+export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get('id');
   const extractBios = req.nextUrl.searchParams.get('extractbios') === '1';
+  const rawName = req.nextUrl.searchParams.get('name') ?? '';
+  let name = rawName;
+  try {
+    name = decodeURIComponent(rawName);
+  } catch {
+    // nombre con codificación inválida: se valida el crudo y fallará abajo
+  }
 
-  if (!id || !DRIVE_ID_RE.test(id) || !name || !NAME_RE.test(decodeURIComponent(name))) {
+  if (!id || !DRIVE_ID_RE.test(id) || !name || !NAME_RE.test(name)) {
     return NextResponse.json({ error: 'Petición inválida' }, { status: 400 });
   }
 
