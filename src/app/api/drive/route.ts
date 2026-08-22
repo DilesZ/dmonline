@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import arcadeCovers from './arcade-covers.json';
 
 // Carpeta compartida de ROMs del propietario del sitio.
 const DEFAULT_FOLDER_ID = '1RpAfuCu6OmImp7lM4y3drRNnm8giR3qx';
@@ -18,6 +19,9 @@ interface Rom {
   id: string;
   name: string;
   core: string;
+  // Nombre de carátula en LibretRO para juegos arcade (basado en la descripción
+  // del set de FBNeo, no en el nombre del fichero).
+  cover?: string;
 }
 
 function coreForFolder(name: string, current: string): string {
@@ -35,10 +39,13 @@ const BROWSER_HEADERS = {
   'accept-language': 'es-ES,es;q=0.9,en;q=0.8',
 };
 
-async function driveFetch(url: string): Promise<Response> {
+async function driveFetch(
+  url: string,
+  extraHeaders: Record<string, string> = {},
+): Promise<Response> {
   return fetch(url, {
     cache: 'no-store',
-    headers: BROWSER_HEADERS,
+    headers: { ...BROWSER_HEADERS, ...extraHeaders },
     signal: AbortSignal.timeout(15000),
   });
 }
@@ -50,7 +57,34 @@ interface ListData {
 
 // Caché en memoria (vive mientras la instancia esté caliente).
 let listCache: { at: number; data: ListData } | null = null;
-const LIST_TTL_MS = 5 * 60 * 1000;
+const LIST_TTL_MS = 15 * 60 * 1000;
+
+// Google bloquea por IP las peticiones a drive.google.com desde datacenters
+// (las IPs de Vercel). Si el acceso directo falla, se reintenta a través de
+// r.jina.ai (que sirve el HTML crudo desde sus propios servidores).
+async function fetchFolderViewHtml(folderId: string): Promise<string> {
+  const url = `https://drive.google.com/embeddedfolderview?id=${encodeURIComponent(folderId)}`;
+  const candidates: { url: string; headers?: Record<string, string> }[] = [
+    { url },
+    { url: `https://r.jina.ai/${url}`, headers: { 'x-return-format': 'html' } },
+  ];
+  let lastError: unknown = null;
+  for (const candidate of candidates) {
+    try {
+      const res = await driveFetch(candidate.url, candidate.headers);
+      if (!res.ok) {
+        lastError = new Error(`HTTP ${res.status}`);
+        continue;
+      }
+      const html = await res.text();
+      if (html.includes('flip-entry')) return html;
+      lastError = new Error('Respuesta sin entradas');
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Listado no disponible');
+}
 
 async function listFolder(
   folderId: string,
@@ -102,19 +136,38 @@ export async function GET(req: NextRequest) {
   // Lista los ficheros de la carpeta pública sin usar la API oficial de Drive:
   // parsea el HTML de embeddedfolderview (recursivo, 2 niveles).
   if (action === 'list') {
+    // Servir desde caché si es reciente.
+    if (listCache && Date.now() - listCache.at < LIST_TTL_MS) {
+      return NextResponse.json(listCache.data);
+    }
     const folder = searchParams.get('folder') ?? DEFAULT_FOLDER_ID;
     if (!DRIVE_ID_RE.test(folder)) {
       return NextResponse.json({ error: 'ID de carpeta inválido' }, { status: 400 });
     }
-    try {
-      const seen = new Set<string>();
-      const roms: Rom[] = [];
-      const biosId = await listFolder(folder, 'snes', 0, seen, roms);
-      roms.sort((a, b) => a.name.localeCompare(b.name));
-      return NextResponse.json({ roms, biosId });
-    } catch {
-      return NextResponse.json({ error: 'No se pudo contactar con Drive' }, { status: 502 });
+    let lastError: unknown = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const seen = new Set<string>();
+        const roms: Rom[] = [];
+        const biosId = await listFolder(folder, 'snes', 0, seen, roms);
+        roms.sort((a, b) => a.name.localeCompare(b.name));
+        const data: ListData = { roms, biosId };
+        listCache = { at: Date.now(), data };
+        return NextResponse.json(data);
+      } catch (err) {
+        lastError = err;
+        if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 2000));
+      }
     }
+    // Si alguna vez conseguimos la lista, servirla caducada antes que fallar.
+    if (listCache) {
+      return NextResponse.json({ ...listCache.data, stale: true });
+    }
+    console.error(
+      '[drive:list] fallo tras reintentos:',
+      lastError instanceof Error ? lastError.message : lastError,
+    );
+    return NextResponse.json({ error: 'No se pudo contactar con Drive' }, { status: 502 });
   }
 
   // Proxy de descarga: mismo origen para el navegador (sin CORS) y así
