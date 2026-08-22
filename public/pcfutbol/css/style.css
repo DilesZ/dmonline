@@ -125,6 +125,7 @@ button { cursor: pointer; font-family: inherit; }
   font-family: 'VT323', monospace; font-size: 18px; color: #fff;
   text-shadow: 1px 1px 0 #000;
   margin-bottom: 8px;
+  position: relative;
 }
 .eq-nom { font-size: 14px; line-height: 1.15; text-align: center; width: 100%; }
 .eq-str { color: var(--gris); font-size: 11px; text-align: center; width: 100%; }
@@ -149,7 +150,15 @@ input:focus, select:focus { outline: none; border-color: var(--amarillo); }
   border-bottom: 2px solid var(--borde);
   padding: 8px 14px;
 }
-.club-badge { width: 40px; height: 40px; border: 2px solid #ffffff44; display: flex; align-items: center; justify-content: center; font-family: 'VT323', monospace; font-size: 17px; text-shadow: 1px 1px 0 #000; }
+.club-badge { width: 40px; height: 40px; border: 2px solid #ffffff44; display: flex; align-items: center; justify-content: center; font-family: 'VT323', monospace; font-size: 17px; text-shadow: 1px 1px 0 #000; position: relative; }
+
+/* Escudos oficiales (imagen sobre el fallback con siglas) */
+.escudo-img {
+  position: absolute; inset: 1px;
+  width: calc(100% - 2px); height: calc(100% - 2px);
+  object-fit: contain;
+  border-radius: 2px;
+}
 .club-nombre { font-size: 16px; font-weight: 600; color: var(--amarillo); }
 .club-sub { font-size: 11px; color: var(--gris); }
 .hub-datos { margin-left: auto; display: flex; gap: 16px; flex-wrap: wrap; justify-content: flex-end; font-size: 12px; }

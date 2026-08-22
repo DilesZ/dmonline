@@ -74,6 +74,53 @@ DATA.NACIONALIDADES = [
   { pais: 'Colombia', peso: 2 }, { pais: 'Serbia', peso: 1 }, { pais: 'Turquía', peso: 1 }, { pais: 'Ghana', peso: 1 }
 ];
 
+// ---------- ESCUDOS OFICIALES (Transfermarkt) ----------
+// verein-id de cada equipo en transfermarkt.es -> wappen/medium/{id}.png
+DATA.TM_WAPPEN = {
+  1: 'https://img.a.transfermarkt.technology/wappen/medium/131.png',
+  2: 'https://img.a.transfermarkt.technology/wappen/medium/418.png',
+  3: 'https://img.a.transfermarkt.technology/wappen/medium/13.png',
+  4: 'https://img.a.transfermarkt.technology/wappen/medium/1050.png',
+  5: 'https://img.a.transfermarkt.technology/wappen/medium/150.png',
+  6: 'https://img.a.transfermarkt.technology/wappen/medium/621.png',
+  7: 'https://img.a.transfermarkt.technology/wappen/medium/681.png',
+  8: 'https://img.a.transfermarkt.technology/wappen/medium/1049.png',
+  9: 'https://img.a.transfermarkt.technology/wappen/medium/940.png',
+  10: 'https://img.a.transfermarkt.technology/wappen/medium/3709.png',
+  11: 'https://img.a.transfermarkt.technology/wappen/medium/367.png',
+  12: 'https://img.a.transfermarkt.technology/wappen/medium/714.png',
+  13: 'https://img.a.transfermarkt.technology/wappen/medium/368.png',
+  14: 'https://img.a.transfermarkt.technology/wappen/medium/331.png',
+  15: 'https://img.a.transfermarkt.technology/wappen/medium/1108.png',
+  16: 'https://img.a.transfermarkt.technology/wappen/medium/3368.png',
+  17: 'https://img.a.transfermarkt.technology/wappen/medium/1531.png',
+  18: 'https://img.a.transfermarkt.technology/wappen/medium/630.png',
+  19: 'https://img.a.transfermarkt.technology/wappen/medium/1084.png',
+  20: 'https://img.a.transfermarkt.technology/wappen/medium/897.png',
+  21: 'https://img.a.transfermarkt.technology/wappen/medium/237.png',
+  22: 'https://img.a.transfermarkt.technology/wappen/medium/12321.png',
+  23: 'https://img.a.transfermarkt.technology/wappen/medium/2497.png',
+  24: 'https://img.a.transfermarkt.technology/wappen/medium/472.png',
+  25: 'https://img.a.transfermarkt.technology/wappen/medium/366.png',
+  26: 'https://img.a.transfermarkt.technology/wappen/medium/1244.png',
+  27: 'https://img.a.transfermarkt.technology/wappen/medium/3302.png',
+  28: 'https://img.a.transfermarkt.technology/wappen/medium/2448.png',
+  29: 'https://img.a.transfermarkt.technology/wappen/medium/1533.png',
+  30: 'https://img.a.transfermarkt.technology/wappen/medium/16795.png',
+  31: 'https://img.a.transfermarkt.technology/wappen/medium/2687.png',
+  32: 'https://img.a.transfermarkt.technology/wappen/medium/648.png',
+  33: 'https://img.a.transfermarkt.technology/wappen/medium/2502.png',
+  34: 'https://img.a.transfermarkt.technology/wappen/medium/1536.png',
+  35: 'https://img.a.transfermarkt.technology/wappen/medium/993.png',
+  36: 'https://img.a.transfermarkt.technology/wappen/medium/1532.png',
+  37: 'https://img.a.transfermarkt.technology/wappen/medium/10718.png',
+  38: 'https://img.a.transfermarkt.technology/wappen/medium/8568.png',
+  39: 'https://img.a.transfermarkt.technology/wappen/medium/12567.png',
+  40: 'https://img.a.transfermarkt.technology/wappen/medium/11422.png',
+  41: 'https://img.a.transfermarkt.technology/wappen/medium/9899.png',
+  42: 'https://img.a.transfermarkt.technology/wappen/medium/8733.png'
+};
+
 // ---------- FORMACIONES ----------
 DATA.FORMACIONES = {
   '4-4-2': [

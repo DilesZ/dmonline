@@ -291,7 +291,10 @@
       e.cols.map(c => `<span style="background:${c}"></span>`).join('');
     const crest = document.getElementById('club-crest');
     crest.style.background = `linear-gradient(135deg, ${e.cols[0]}, ${e.cols[1]})`;
-    crest.textContent = e.abr;
+    const wappen = DATA.TM_WAPPEN && DATA.TM_WAPPEN[e.id];
+    crest.innerHTML = wappen
+      ? `<img src="${wappen}" alt="${esc(e.nom)}" style="width:78%;height:78%;object-fit:contain" onerror="this.remove();this.parentElement.textContent='${e.abr}'">`
+      : e.abr;
 
     document.getElementById('club-nombre').textContent = e.nom;
     document.getElementById('club-meta').innerHTML =

@@ -20,8 +20,11 @@ UI.mostrarPantalla = function (id) {
   window.scrollTo(0, 0);
 };
 
-UI.escudoHTML = function (t, cls = 'eq-escudo') {
-  return `<div class="${cls}" style="background:${t.cols[0]};color:${t.cols[1]}">${t.abr}</div>`;
+UI.escudoHTML = function (t, cls = 'eq-escudo', extra = '') {
+  const w = DATA.TM_WAPPEN && DATA.TM_WAPPEN[t.id];
+  if (!w) return `<div class="${cls}" style="background:${t.cols[0]};color:${t.cols[1]}">${t.abr}</div>`;
+  // Escudo oficial; si la imagen falla, se ve el fondo con las siglas
+  return `<div class="${cls}" style="background:#fff;color:${t.cols[0]}" title="${t.nom}"${extra}>${t.abr}<img class="escudo-img" src="${w}" alt="${t.nom}" loading="lazy" onerror="this.remove()"></div>`;
 };
 
 UI.modal = function (html) {
@@ -137,7 +140,7 @@ UI.abrirHub = function () {
 UI.renderTopbar = function () {
   const st = UI.st;
   const t = st.teams[st.userTeam];
-  $('#hub-badge').outerHTML = `<div class="club-badge" id="hub-badge" style="background:${t.cols[0]};color:${t.cols[1]}">${t.abr}</div>`;
+  $('#hub-badge').outerHTML = UI.escudoHTML(t, 'club-badge', ' id="hub-badge"');
   $('#hub-equipo').textContent = t.nom;
   const posUser = ENGINE.clasificacion(st, t.div).find(f => f.id === st.userTeam)?.pos ?? '-';
   $('#hub-sub').textContent = `${DATA.DIVISIONES[t.div].nombre} · Temporada ${st.anio}/${String(st.anio + 1).slice(2)} · Entrenador ${st.managerName}`;
