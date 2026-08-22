@@ -59,11 +59,7 @@ async function listFolder(
   seen: Set<string>,
   roms: Rom[],
 ): Promise<string | undefined> {
-  const res = await driveFetch(
-    `https://drive.google.com/embeddedfolderview?id=${encodeURIComponent(folderId)}`,
-  );
-  if (!res.ok) throw new Error(`Drive respondió ${res.status}`);
-  const html = await res.text();
+  const html = await fetchFolderViewHtml(folderId);
   const entryRe = /id="entry-([A-Za-z0-9_-]{10,})"[\s\S]*?flip-entry-title">([^<]+)</g;
   let biosId: string | undefined;
   let m: RegExpExecArray | null;
