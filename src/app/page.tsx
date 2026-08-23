@@ -234,6 +234,11 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
                 onMouseEnter={() => go(index)}
                 onClick={() => go(index)}
               >
+                <span className="rail-num">{String(index + 1).padStart(2, '0')}</span>
+                <span className="rail-thumb">
+                  <Thumb sources={item.covers} alt="" />
+                </span>
+                <span className="rail-title">{item.title}</span>
                 <a
                   className="rail-play"
                   href={item.href}
@@ -243,12 +248,6 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
                 >
                   ▶
                 </a>
-                <span className="rail-num">{String(index + 1).padStart(2, '0')}</span>
-                <span className="rail-thumb">
-                  <Thumb sources={item.covers} alt="" />
-                </span>
-                <span className="rail-title">{item.title}</span>
-                <span className="rail-core">{CORE_LABEL[item.core] ?? item.core}</span>
               </div>
               );
             })}
@@ -639,10 +638,11 @@ export default function Home() {
         .rail-item.on .rail-core { color: var(--i-acc); }
         .rail-play {
           flex-shrink: 0;
-          width: 26px; height: 26px;
+          margin-left: auto;
+          width: 28px; height: 28px;
           border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
-          font-size: 10px;
+          font-size: 11px;
           color: var(--i-acc);
           background: rgba(255,255,255,.05);
           border: 1px solid var(--i-acc);
