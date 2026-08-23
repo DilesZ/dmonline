@@ -25,6 +25,7 @@ const SYS_BY_CORE: Record<string, string> = {
   segaMD: 'Sega - Mega Drive - Genesis',
   arcade: 'FBNeo - Arcade Games',
   nds: 'Nintendo - Nintendo DS',
+  gba: 'Nintendo - Game Boy Advance',
   manager: 'JuegosZ Originals',
 };
 
@@ -34,6 +35,7 @@ const CORE_LABEL: Record<string, string> = {
   segaMD: 'MEGA DRIVE',
   nes: 'NES',
   nds: 'NINTENDO DS',
+  gba: 'GAME BOY ADVANCE',
   manager: 'MANAGER',
 };
 
@@ -43,6 +45,7 @@ const ACCENT: Record<string, { main: string; soft: string; glow: string }> = {
   segaMD: { main: '#38bdf8', soft: 'rgba(56,189,248,.14)', glow: 'rgba(56,189,248,.5)' },
   arcade: { main: '#e879f9', soft: 'rgba(232,121,249,.15)', glow: 'rgba(232,121,249,.55)' },
   nds: { main: '#34d399', soft: 'rgba(52,211,153,.14)', glow: 'rgba(52,211,153,.5)' },
+  gba: { main: '#818cf8', soft: 'rgba(129,140,248,.14)', glow: 'rgba(129,140,248,.5)' },
   manager: { main: '#fbbf24', soft: 'rgba(251,191,36,.14)', glow: 'rgba(251,191,36,.5)' },
 };
 
@@ -66,6 +69,7 @@ const PLATFORM_LOGO: Record<string, { src: string; w: number }> = {
   segaMD: { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/SEGA_logo.svg/250px-SEGA_logo.svg.png', w: 64 },
   arcade: { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Crystal128-input-gaming.svg/120px-Crystal128-input-gaming.svg.png', w: 52 },
   nds: { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Nintendo_DS_Logo.svg/120px-Nintendo_DS_Logo.svg.png', w: 88 },
+  gba: { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Game_Boy_Advance_logo.svg/250px-Game_Boy_Advance_logo.svg.png', w: 96 },
   manager: { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Soccer_ball.svg/120px-Soccer_ball.svg.png', w: 48 },
 };
 
@@ -98,6 +102,8 @@ const GAME_VIDEOS: Record<string, string> = {
   'super mario all-stars': 'https://archive.org/download/super-nintendo-entertainment-system-video-snaps/Super%20Mario%20All-Stars%20(USA).mp4',
   'super mario kart': 'https://archive.org/download/super-nintendo-entertainment-system-video-snaps/Super%20Mario%20Kart%20(USA).mp4',
   'super mario world': 'https://archive.org/download/super-nintendo-entertainment-system-video-snaps/Super%20Mario%20World%20(USA).mp4',
+  // Game Boy Advance
+  'zelda a link to the past & four swords': 'https://archive.org/download/nintendo-game-boy-advance-video-sanps-sq/Legend%20of%20Zelda%2C%20The%20-%20A%20Link%20to%20the%20Past%20%26%20Four%20Swords%20(USA%2C%20Australia).mp4',
 };
 
 // Packs públicos de video-snaps con nombres No-Intro → candidatos automáticos por región
@@ -105,6 +111,12 @@ const VIDEO_PACK_BY_CORE: Record<string, string> = {
   snes: 'https://archive.org/download/super-nintendo-entertainment-system-video-snaps/',
   nes: 'https://archive.org/download/nintendo-entertainment-system-video-snaps/',
   nds: 'https://archive.org/download/NintendoDSVideoSnaps/',
+  gba: 'https://archive.org/download/nintendo-game-boy-advance-video-sanps-sq/',
+};
+
+// Títulos de ROM no estándar → nombre No-Intro real (para carátulas)
+const COVER_ALIASES: Record<string, string> = {
+  'zelda a link to the past & four swords': 'Legend of Zelda, The - A Link to the Past & Four Swords',
 };
 
 function thumbCandidates(core: string, target: string): string[] {
@@ -173,7 +185,7 @@ function buildRomHref(rom: DriveRom, biosId?: string | null): string {
 function toLibraryItem(rom: DriveRom, biosId?: string | null): LibraryItem {
   const title = rom.name.replace(/\.[^.]+$/, '');
   const core = rom.core ?? 'snes';
-  const coverTarget = core === 'arcade' && rom.cover ? rom.cover : title;
+  const coverTarget = core === 'arcade' && rom.cover ? rom.cover : (COVER_ALIASES[title.toLowerCase()] ?? title);
   const romKey = rom.name.replace(/\.[^.]+$/, '').toLowerCase();
 
   // Vídeo: mapa manual + candidatos automáticos de los packs No-Intro por región
@@ -185,7 +197,7 @@ function toLibraryItem(rom: DriveRom, biosId?: string | null): LibraryItem {
     if (/\([^)]*\)/.test(title)) {
       videos.push(`${pack}${enc(title)}.mp4`);
     } else {
-      for (const r of ['USA', 'Europe', 'World', 'France', 'Japan']) videos.push(`${pack}${enc(`${title} (${r})`)}.mp4`);
+      for (const r of ['USA', 'Europe', 'USA, Europe', 'World', 'France', 'Japan']) videos.push(`${pack}${enc(`${title} (${r})`)}.mp4`);
     }
   }
 
