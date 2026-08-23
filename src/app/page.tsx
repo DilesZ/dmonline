@@ -100,6 +100,13 @@ const GAME_VIDEOS: Record<string, string> = {
   'super mario world': 'https://archive.org/download/super-nintendo-entertainment-system-video-snaps/Super%20Mario%20World%20(USA).mp4',
 };
 
+// Packs públicos de video-snaps con nombres No-Intro → candidatos automáticos por región
+const VIDEO_PACK_BY_CORE: Record<string, string> = {
+  snes: 'https://archive.org/download/super-nintendo-entertainment-system-video-snaps/',
+  nes: 'https://archive.org/download/nintendo-entertainment-system-video-snaps/',
+  nds: 'https://archive.org/download/NintendoDSVideoSnaps/',
+};
+
 function thumbCandidates(core: string, target: string): string[] {
   if (/^https?:\/\//.test(target)) return [target];
   const sys = SYS_BY_CORE[core] ?? SYS_BY_CORE.snes;
@@ -169,16 +176,16 @@ function toLibraryItem(rom: DriveRom, biosId?: string | null): LibraryItem {
   const coverTarget = core === 'arcade' && rom.cover ? rom.cover : title;
   const romKey = rom.name.replace(/\.[^.]+$/, '').toLowerCase();
 
-  // Vídeo: mapa manual + candidatos automáticos del pack NDS (nombres No-Intro)
+  // Vídeo: mapa manual + candidatos automáticos de los packs No-Intro por región
   const videos: string[] = [];
   if (GAME_VIDEOS[romKey]) videos.push(GAME_VIDEOS[romKey]);
-  if (core === 'nds') {
-    const base = 'https://archive.org/download/NintendoDSVideoSnaps/';
+  const pack = VIDEO_PACK_BY_CORE[core];
+  if (pack) {
     const enc = encodeURIComponent;
     if (/\([^)]*\)/.test(title)) {
-      videos.push(`${base}${enc(title)}.mp4`);
+      videos.push(`${pack}${enc(title)}.mp4`);
     } else {
-      for (const r of ['USA', 'Europe', 'World']) videos.push(`${base}${enc(`${title} (${r})`)}.mp4`);
+      for (const r of ['USA', 'Europe', 'World', 'France', 'Japan']) videos.push(`${pack}${enc(`${title} (${r})`)}.mp4`);
     }
   }
 
