@@ -87,7 +87,17 @@ function thumbCandidates(core: string, target: string): string[] {
   const limpio = target.replace(/\s*\([^)]*\)/g, '').replace(/\s*\[[^\]]*\]/g, '').trim();
   const variantes = new Set<string>();
   if (limpio && limpio !== target) variantes.add(limpio);
-  if (!/\([^)]*\)/.test(target)) for (const r of ['USA', 'Europe', 'Japan', 'World']) variantes.add(`${limpio} (${r})`);
+  const sinRegion = !/\([^)]*\)/.test(target);
+  if (sinRegion) for (const r of ['USA', 'Europe', 'Japan', 'World']) variantes.add(`${limpio} (${r})`);
+
+  // Libretro nombra los archivos sustituyendo '&' por '_' ("Sonic _ Knuckles (World)")
+  const alt = target.replace(/&/g, '_');
+  if (alt !== target) {
+    const altLimpio = alt.replace(/\s*\([^)]*\)/g, '').replace(/\s*\[[^\]]*\]/g, '').trim();
+    variantes.add(alt);
+    if (sinRegion) for (const r of ['USA', 'Europe', 'Japan', 'World']) variantes.add(`${altLimpio} (${r})`);
+  }
+
   for (const v of variantes)
     for (const kind of ['Named_Boxarts', 'Named_Snaps'] as const) push(kind, v);
 

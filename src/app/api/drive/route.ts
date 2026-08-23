@@ -50,6 +50,16 @@ async function driveFetch(
   });
 }
 
+// El HTML de Drive trae los nombres con entidades escapadas ("Sonic &amp; Knuckles")
+function decodeHtmlEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#0*39;/g, "'");
+}
+
 interface ListData {
   roms: Rom[];
   biosId?: string;
@@ -105,7 +115,7 @@ async function listFolder(
     // Sin punto en el nombre → lo tratamos como subcarpeta de sistema.
     if (!name.includes('.')) {
       if (depth < 2) {
-        const subBios = await listFolder(id, coreForFolder(name, core), depth + 1, seen, roms);
+        const subBios = await listFolder(id, coreForFolder(decodeHtmlEntities(name), core), depth + 1, seen, roms);
         biosId ??= subBios;
       }
       continue;
@@ -118,7 +128,7 @@ async function listFolder(
     }
 
     if (!ROM_EXT_RE.test(name)) continue;
-    const rom: Rom = { id, name, core };
+    const rom: Rom = { id, name: decodeHtmlEntities(name), core };
     if (core === 'arcade') {
       const setName = name.replace(/\.zip$/i, '').toLowerCase();
       const cover = (arcadeCovers as Record<string, string>)[setName];
