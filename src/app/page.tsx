@@ -46,6 +46,15 @@ function accentOf(core: string) {
   return ACCENT[core] ?? ACCENT.snes;
 }
 
+// Distintivo corto de plataforma para el índice
+const SYS_MARK: Record<string, string> = {
+  snes: 'SN',
+  nes: 'NE',
+  segaMD: 'MD',
+  arcade: 'AR',
+  manager: 'PF',
+};
+
 function thumbCandidates(core: string, target: string): string[] {
   if (/^https?:\/\//.test(target)) return [target];
   const sys = SYS_BY_CORE[core] ?? SYS_BY_CORE.snes;
@@ -207,29 +216,30 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
             {items.map((item, index) => {
               const a = accentOf(item.core);
               const on = index === active;
+              const sys = SYS_MARK[item.core] ?? item.core.slice(0, 2).toUpperCase();
               return (
                 <div
-                key={item.id}
-                className={`rail-item${on ? ' on' : ''}`}
-                style={{ '--i-acc': a.main, '--i-soft': a.soft } as React.CSSProperties}
-                onMouseEnter={() => go(index)}
-                onClick={() => go(index)}
-              >
-                <span className="rail-num">{String(index + 1).padStart(2, '0')}</span>
-                <span className="rail-thumb">
-                  <Thumb sources={item.covers} alt="" />
-                </span>
-                <span className="rail-title">{item.title}</span>
-                <a
-                  className="rail-play"
-                  href={item.href}
-                  title={`Jugar a ${item.title}`}
-                  aria-label={`Jugar a ${item.title}`}
-                  onClick={(e) => e.stopPropagation()}
+                  key={item.id}
+                  className={`rail-item${on ? ' on' : ''}`}
+                  style={{ '--i-acc': a.main, '--i-soft': a.soft } as React.CSSProperties}
+                  onMouseEnter={() => go(index)}
+                  onClick={() => go(index)}
                 >
-                  ▶
-                </a>
-              </div>
+                  <span className="rail-thumb">
+                    <Thumb sources={item.covers} alt="" />
+                  </span>
+                  <span className="rail-title">{item.title}</span>
+                  <span className="rail-sys" title={`${CORE_LABEL[item.core] ?? item.core}`} style={{ '--i-acc': a.main, '--i-soft': a.soft } as React.CSSProperties}>{sys}</span>
+                  <a
+                    className="rail-play"
+                    href={item.href}
+                    title={`Jugar a ${item.title}`}
+                    aria-label={`Jugar a ${item.title}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    ▶
+                  </a>
+                </div>
               );
             })}
           </div>
@@ -592,12 +602,6 @@ export default function Home() {
           color: #fff;
           box-shadow: inset 3px 0 0 var(--i-acc);
         }
-        .rail-num {
-          font-size: 11px; font-weight: 900; letter-spacing: 1px;
-          color: #5f527f; width: 26px; flex-shrink: 0;
-          font-variant-numeric: tabular-nums;
-        }
-        .rail-item.on .rail-num { color: var(--i-acc); }
         .rail-thumb {
           width: 40px; height: 52px; flex-shrink: 0;
           border-radius: 7px; overflow: hidden;
@@ -612,11 +616,17 @@ export default function Home() {
           flex: 1; min-width: 0;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-        .rail-core {
-          font-size: 9px; font-weight: 900; letter-spacing: 1.6px;
-          color: #5f527f; flex-shrink: 0;
+        .rail-sys {
+          flex-shrink: 0;
+          width: 28px; height: 28px;
+          border-radius: 8px;
+          display: flex; align-items: center; justify-content: center;
+          font-family: 'VT323', monospace; font-size: 13px;
+          letter-spacing: .5px;
+          color: var(--i-acc);
+          background: var(--i-soft);
+          border: 1px solid var(--i-acc);
         }
-        .rail-item.on .rail-core { color: var(--i-acc); }
         .rail-play {
           flex-shrink: 0;
           margin-left: auto;
