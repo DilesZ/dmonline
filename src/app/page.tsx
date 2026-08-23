@@ -16,6 +16,7 @@ interface LibraryItem {
   href: string;
   covers: string[];
   previews: string[];
+  videos: string[];
 }
 
 const SYS_BY_CORE: Record<string, string> = {
@@ -70,6 +71,30 @@ function SysLogo({ core, fallback }: { core: string; fallback: string }) {
   if (!logo || err) return <>{fallback}</>;
   return <img src={logo.src} alt="" loading="lazy" onError={() => setErr(true)} />;
 }
+
+// Vídeo gameplay en bucle (estilo RetroArch) por nombre de ROM sin extensión.
+// Fuente: packs públicos de video-snaps en archive.org (MAME, Mega Drive, SNES).
+const GAME_VIDEOS: Record<string, string> = {
+  // Arcade (MAME video snaps)
+  pang: 'https://archive.org/download/mamearcade-video-snaps/pang.mp4',
+  snowbros: 'https://archive.org/download/mamearcade-video-snaps/snowbros.mp4',
+  snowbro2: 'https://archive.org/download/mamearcade-video-snaps/snowbro2.mp4',
+  spang: 'https://archive.org/download/mamearcade-video-snaps/spang.mp4',
+  tumbleb: 'https://archive.org/download/mamearcade-video-snaps/tumblep.mp4',
+  wjammers: 'https://archive.org/download/mamearcade-video-snaps/wjammers.mp4',
+  // Mega Drive / Genesis
+  columns: 'https://archive.org/download/SegaMegaDriveGenesisVideos/Columnsworldv1.1.mp4',
+  'golden axe': 'https://archive.org/download/SegaMegaDriveGenesisVideos/GoldenAxeworldv1.1.mp4',
+  'sonic & knuckles': 'https://archive.org/download/SegaMegaDriveGenesisVideos/SonicKnucklesworld.mp4',
+  'sonic the hedgehog (usa, europe)': 'https://archive.org/download/SegaMegaDriveGenesisVideos/SonicTheHedgehogusaEurope.mp4',
+  'streets of rage': 'https://archive.org/download/SegaMegaDriveGenesisVideos/StreetsOfRageworldrevA.mp4',
+  // Super Nintendo
+  'mega man 7': 'https://archive.org/download/super-nintendo-entertainment-system-video-snaps/Mega%20Man%207%20(USA).mp4',
+  'mega man x': 'https://archive.org/download/super-nintendo-entertainment-system-video-snaps/Mega%20Man%20X%20(USA).mp4',
+  'super mario all-stars': 'https://archive.org/download/super-nintendo-entertainment-system-video-snaps/Super%20Mario%20All-Stars%20(USA).mp4',
+  'super mario kart': 'https://archive.org/download/super-nintendo-entertainment-system-video-snaps/Super%20Mario%20Kart%20(USA).mp4',
+  'super mario world': 'https://archive.org/download/super-nintendo-entertainment-system-video-snaps/Super%20Mario%20World%20(USA).mp4',
+};
 
 function thumbCandidates(core: string, target: string): string[] {
   if (/^https?:\/\//.test(target)) return [target];
@@ -140,6 +165,7 @@ function toLibraryItem(rom: DriveRom, biosId?: string | null): LibraryItem {
     href: buildRomHref(rom, biosId),
     covers: thumbCandidates(core, coverTarget),
     previews: thumbCandidates(core, coverTarget),
+    videos: [GAME_VIDEOS[rom.name.replace(/\.[^.]+$/, '').toLowerCase()]].filter(Boolean) as string[],
   };
 }
 
@@ -296,6 +322,18 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
               ) : (
                 <div className="crt-fallback"><span>{current.title}</span></div>
               )}
+              {current.videos.length > 0 && (
+                <video
+                  className="crt-video"
+                  src={current.videos[0]}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              )}
               <div className="crt-scan" />
             </div>
             <div className="crt-foot">
@@ -346,6 +384,7 @@ export default function Home() {
       href: '/pcfutbol/',
       covers: ['/pcfutbol/cover.jpg'],
       previews: ['/pcfutbol/cover.jpg'],
+      videos: [],
     }),
     [],
   );
@@ -708,6 +747,11 @@ export default function Home() {
           image-rendering: pixelated;
         }
         .crt-inner img.crt-cover { object-fit: contain; padding: 14px; }
+        .crt-video {
+          position: absolute; inset: 0;
+          width: 100%; height: 100%;
+          object-fit: cover;
+        }
         .crt-scan {
           position: absolute; inset: 0; pointer-events: none;
           background:
