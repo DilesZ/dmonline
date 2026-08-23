@@ -5,7 +5,7 @@ import arcadeCovers from './arcade-covers.json';
 const DEFAULT_FOLDER_ID = '1RpAfuCu6OmImp7lM4y3drRNnm8giR3qx';
 
 const DRIVE_ID_RE = /^[A-Za-z0-9_-]{10,}$/;
-const ROM_EXT_RE = /\.(smc|sfc|swc|fig|zip|nes|fds|unf|unif|md|gen|bin|sms|gg)$/i;
+const ROM_EXT_RE = /\.(smc|sfc|swc|fig|zip|nes|fds|unf|unif|md|gen|bin|sms|gg|nds)$/i;
 
 // Nombre de subcarpeta en Drive → EJS_core
 const CORE_BY_FOLDER: [RegExp, string][] = [
@@ -13,6 +13,7 @@ const CORE_BY_FOLDER: [RegExp, string][] = [
   [/^(arcade|mame|fbneo|fba|neogeo|neo\s*geo)$/i, 'arcade'],
   [/^(megadrive|mega\s*drive|genesis|md|sega)$/i, 'segaMD'],
   [/^(nes|famicom|nintendo)$/i, 'nes'],
+  [/^(nds|nintendo\s*ds|ds)$/i, 'nds'],
 ];
 
 interface Rom {

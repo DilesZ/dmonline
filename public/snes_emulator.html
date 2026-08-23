@@ -63,8 +63,8 @@
     var biosextract = params.get('biosextract') === '1';
 
     // Núcleos disponibles en /data/cores (clave en minúsculas → valor canónico).
-    var CORES = { snes: 'snes', arcade: 'arcade', segamd: 'segaMD', nes: 'nes' };
-    var CORE_LABEL = { snes: 'SNES', arcade: 'ARCADE', segaMD: 'MEGA DRIVE', nes: 'NES' };
+    var CORES = { snes: 'snes', arcade: 'arcade', segamd: 'segaMD', nes: 'nes', nds: 'nds' };
+    var CORE_LABEL = { snes: 'SNES', arcade: 'ARCADE', segaMD: 'MEGA DRIVE', nes: 'NES', nds: 'NINTENDO DS' };
     var core = CORES[(params.get('core') || 'snes').toLowerCase()] || 'snes';
 
     if (!rom) {

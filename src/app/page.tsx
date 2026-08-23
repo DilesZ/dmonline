@@ -24,6 +24,7 @@ const SYS_BY_CORE: Record<string, string> = {
   nes: 'Nintendo - Nintendo Entertainment System',
   segaMD: 'Sega - Mega Drive - Genesis',
   arcade: 'FBNeo - Arcade Games',
+  nds: 'Nintendo - Nintendo DS',
   manager: 'JuegosZ Originals',
 };
 
@@ -32,6 +33,7 @@ const CORE_LABEL: Record<string, string> = {
   arcade: 'ARCADE',
   segaMD: 'MEGA DRIVE',
   nes: 'NES',
+  nds: 'NINTENDO DS',
   manager: 'MANAGER',
 };
 
@@ -40,6 +42,7 @@ const ACCENT: Record<string, { main: string; soft: string; glow: string }> = {
   nes: { main: '#fb7185', soft: 'rgba(251,113,133,.14)', glow: 'rgba(251,113,133,.5)' },
   segaMD: { main: '#38bdf8', soft: 'rgba(56,189,248,.14)', glow: 'rgba(56,189,248,.5)' },
   arcade: { main: '#e879f9', soft: 'rgba(232,121,249,.15)', glow: 'rgba(232,121,249,.55)' },
+  nds: { main: '#34d399', soft: 'rgba(52,211,153,.14)', glow: 'rgba(52,211,153,.5)' },
   manager: { main: '#fbbf24', soft: 'rgba(251,191,36,.14)', glow: 'rgba(251,191,36,.5)' },
 };
 
@@ -62,6 +65,7 @@ const PLATFORM_LOGO: Record<string, { src: string; w: number }> = {
   nes: { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/NES_logo.svg/120px-NES_logo.svg.png', w: 56 },
   segaMD: { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/SEGA_logo.svg/250px-SEGA_logo.svg.png', w: 64 },
   arcade: { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Crystal128-input-gaming.svg/120px-Crystal128-input-gaming.svg.png', w: 52 },
+  nds: { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Nintendo_DS_Logo.svg/120px-Nintendo_DS_Logo.svg.png', w: 88 },
   manager: { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Soccer_ball.svg/120px-Soccer_ball.svg.png', w: 48 },
 };
 
@@ -123,6 +127,12 @@ function thumbCandidates(core: string, target: string): string[] {
     if (sinRegion) for (const r of ['USA', 'Europe', 'Japan', 'World']) variantes.add(`${altLimpio} (${r})`);
   }
 
+  // Variantes multiidioma típicas de No-Intro ("(USA) (En,Fr,Es)", "(Europe) (En,Fr,De,Es,It)")
+  if (sinRegion) {
+    variantes.add(`${limpio} (USA) (En,Fr,Es)`);
+    variantes.add(`${limpio} (Europe) (En,Fr,De,Es,It)`);
+  }
+
   for (const v of variantes)
     for (const kind of ['Named_Boxarts', 'Named_Snaps'] as const) push(kind, v);
 
@@ -157,6 +167,20 @@ function toLibraryItem(rom: DriveRom, biosId?: string | null): LibraryItem {
   const title = rom.name.replace(/\.[^.]+$/, '');
   const core = rom.core ?? 'snes';
   const coverTarget = core === 'arcade' && rom.cover ? rom.cover : title;
+  const romKey = rom.name.replace(/\.[^.]+$/, '').toLowerCase();
+
+  // Vídeo: mapa manual + candidatos automáticos del pack NDS (nombres No-Intro)
+  const videos: string[] = [];
+  if (GAME_VIDEOS[romKey]) videos.push(GAME_VIDEOS[romKey]);
+  if (core === 'nds') {
+    const base = 'https://archive.org/download/NintendoDSVideoSnaps/';
+    const enc = encodeURIComponent;
+    if (/\([^)]*\)/.test(title)) {
+      videos.push(`${base}${enc(title)}.mp4`);
+    } else {
+      for (const r of ['USA', 'Europe', 'World']) videos.push(`${base}${enc(`${title} (${r})`)}.mp4`);
+    }
+  }
 
   return {
     id: rom.id,
@@ -165,7 +189,7 @@ function toLibraryItem(rom: DriveRom, biosId?: string | null): LibraryItem {
     href: buildRomHref(rom, biosId),
     covers: thumbCandidates(core, coverTarget),
     previews: thumbCandidates(core, coverTarget),
-    videos: [GAME_VIDEOS[rom.name.replace(/\.[^.]+$/, '').toLowerCase()]].filter(Boolean) as string[],
+    videos,
   };
 }
 
@@ -180,6 +204,25 @@ function Thumb({ sources, alt, className }: { sources: string[]; alt: string; cl
       alt={alt}
       className={className}
       loading="lazy"
+      onError={() => setI((v) => v + 1)}
+    />
+  );
+}
+
+// Vídeo gameplay en bucle: recorre fuentes hasta que una cargue; si ninguna, no se muestra
+function GameVideo({ sources }: { sources: string[] }) {
+  const [i, setI] = useState(0);
+  useEffect(() => setI(0), [sources.join('|')]);
+  if (i >= sources.length) return null;
+  return (
+    <video
+      className="crt-video"
+      src={sources[i]}
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="auto"
       onError={() => setI((v) => v + 1)}
     />
   );
@@ -322,18 +365,7 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
               ) : (
                 <div className="crt-fallback"><span>{current.title}</span></div>
               )}
-              {current.videos.length > 0 && (
-                <video
-                  className="crt-video"
-                  src={current.videos[0]}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="auto"
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                />
-              )}
+              {current.videos.length > 0 && <GameVideo sources={current.videos} />}
               <div className="crt-scan" />
             </div>
             <div className="crt-foot">
