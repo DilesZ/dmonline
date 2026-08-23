@@ -399,12 +399,153 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
   );
 }
 
+/* ============================================================
+   PLANTILLA MÓVIL — hero con vídeo arriba, barra fija y lista
+   de tarjetas a página completa (sin scroll interno limitado)
+   ============================================================ */
+function MobileLibrary({
+  items, query, setQuery, filter, setFilter, platforms,
+}: {
+  items: LibraryItem[];
+  query: string; setQuery: (v: string) => void;
+  filter: string; setFilter: (v: string) => void;
+  platforms: string[];
+}) {
+  const [active, setActive] = useState(0);
+  const [shotIdx, setShotIdx] = useState(0);
+
+  useEffect(() => {
+    setActive((p) => (p >= items.length ? 0 : p));
+    setShotIdx(0);
+  }, [items]);
+
+  const select = (index: number) => {
+    setActive(index);
+    setShotIdx(0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  if (!items.length) return null;
+
+  const current = items[Math.min(active, items.length - 1)];
+  const shots = [...current.previews, ...current.covers].filter((u, i, arr) => arr.indexOf(u) === i);
+  const acc = accentOf(current.core);
+  const label = CORE_LABEL[current.core] ?? current.core.toUpperCase();
+
+  return (
+    <section className="mob" aria-label="Biblioteca de juegos">
+      {/* Vista previa del juego activo */}
+      <div
+        className="m-hero"
+        key={'h' + current.id}
+        style={{ '--acc': acc.main, '--acc-glow': acc.glow } as React.CSSProperties}
+      >
+        <div className="m-screen">
+          {shotIdx < shots.length ? (
+            <img
+              src={shots[shotIdx]}
+              alt={`Pantalla de ${current.title}`}
+              onError={() => setShotIdx((v) => v + 1)}
+            />
+          ) : (
+            <div className="m-fallback"><span>{current.title}</span></div>
+          )}
+          {current.videos.length > 0 && <GameVideo sources={current.videos} />}
+          <div className="m-scan" />
+          <span className="m-badge">{label}</span>
+        </div>
+        <div className="m-meta">
+          <h2 className="m-title">{current.title}</h2>
+          <a className="m-playbig" href={current.href} target="_blank" rel="noopener noreferrer">
+            ▶&nbsp;&nbsp;JUGAR AHORA
+          </a>
+        </div>
+      </div>
+
+      {/* Buscador y plataformas fijos */}
+      <div className="m-bar">
+        <input
+          className="search"
+          type="search"
+          placeholder="Buscar juego..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <div className="m-chips">
+          <button className={`fbtn${filter === 'all' ? ' on' : ''}`} onClick={() => setFilter('all')}>
+            Todos
+          </button>
+          {platforms.map((core) => (
+            <button
+              key={core}
+              className={`fbtn${filter === core ? ' on' : ''}`}
+              onClick={() => setFilter(core)}
+            >
+              {CORE_LABEL[core]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="m-count">
+        ÍNDICE COMPLETO · {items.length} {items.length === 1 ? 'JUEGO' : 'JUEGOS'}
+      </div>
+
+      {/* Lista de juegos a página completa */}
+      <ul className="m-list">
+        {items.map((item, index) => {
+          const a = accentOf(item.core);
+          const ini = item.title.split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+          return (
+            <li
+              key={item.id}
+              className={`m-item${index === active ? ' on' : ''}`}
+              style={{ '--acc': a.main } as React.CSSProperties}
+              onClick={() => select(index)}
+            >
+              <span className="m-thumbbox">
+                <span className="m-thumbini">{ini}</span>
+                <Thumb sources={item.covers.slice(0, 4)} alt="" className="m-thumbimg" />
+              </span>
+              <span className="m-txt">
+                <span className="m-name">{item.title}</span>
+                <span className="m-sub">{CORE_LABEL[item.core] ?? item.core.toUpperCase()}</span>
+              </span>
+              <a
+                className="m-play"
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={`Jugar a ${item.title}`}
+                aria-label={`Jugar a ${item.title}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                ▶
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 export default function Home() {
   const [roms, setRoms] = useState<DriveRom[]>([]);
   const [biosId, setBiosId] = useState<string | null>(null);
   const [driveState, setDriveState] = useState<'idle' | 'ok' | 'error'>('idle');
   const [filter, setFilter] = useState<string>('all');
   const [query, setQuery] = useState('');
+
+  // Plantilla móvil propia por debajo de 860px
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 860px)');
+    const upd = () => setIsMobile(mq.matches);
+    upd();
+    mq.addEventListener('change', upd);
+    return () => mq.removeEventListener('change', upd);
+  }, []);
 
   const loadDrive = useCallback(async () => {
     setDriveState('idle');
@@ -528,7 +669,18 @@ export default function Home() {
         )}
 
         {driveState === 'ok' && spotlightItems.length > 0 && (
-          <Spotlight items={spotlightItems} />
+          isMobile ? (
+            <MobileLibrary
+              items={spotlightItems}
+              query={query}
+              setQuery={setQuery}
+              filter={filter}
+              setFilter={setFilter}
+              platforms={platforms}
+            />
+          ) : (
+            <Spotlight items={spotlightItems} />
+          )
         )}
       </main>
 
@@ -897,6 +1049,123 @@ export default function Home() {
           .rail-play { width: 24px; height: 24px; font-size: 9px; }
           .stage-main { padding: 18px 14px 16px; gap: 16px; }
           .crt { width: min(100%, 280px); }
+        }
+
+        /* ===== PLANTILLA MÓVIL (≤860px, árbol JSX propio) ===== */
+        @media (max-width: 860px) {
+          .nav { display: none; }
+          main { padding: 12px 12px 44px; }
+        }
+        .mob { display: flex; flex-direction: column; gap: 14px; }
+
+        .m-hero {
+          position: relative; border-radius: 22px; overflow: hidden;
+          border: 1px solid #2b1a4d; background: #0a0614;
+          box-shadow: 0 18px 50px rgba(0,0,0,.45);
+          animation: mIn .45s ease both;
+        }
+        @keyframes mIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+        .m-screen {
+          position: relative; aspect-ratio: 16 / 9;
+          background: #000; overflow: hidden;
+        }
+        .m-screen > img {
+          position: absolute; inset: 0;
+          width: 100%; height: 100%; object-fit: cover;
+        }
+        .m-scan {
+          position: absolute; inset: 0; z-index: 3; pointer-events: none;
+          background:
+            repeating-linear-gradient(0deg, rgba(0,0,0,.15) 0 1px, transparent 1px 3px),
+            radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0,0,0,.5));
+        }
+        .m-badge {
+          position: absolute; z-index: 4; top: 10px; left: 10px;
+          font-size: 9px; font-weight: 900; letter-spacing: 2px; color: #fff;
+          background: rgba(6,3,14,.72); border: 1px solid rgba(255,255,255,.14);
+          padding: 5px 10px; border-radius: 999px; backdrop-filter: blur(6px);
+        }
+        .m-fallback {
+          position: absolute; inset: 0; display: grid; place-items: center; padding: 18px;
+          color: #584a80; font-weight: 900; text-align: center; font-size: 14px;
+          background:
+            radial-gradient(90% 70% at 50% 30%, rgba(124,58,237,.14), transparent 70%), #0b0716;
+        }
+        .m-meta {
+          padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px;
+          background: linear-gradient(180deg, rgba(20,11,38,.55), rgba(8,4,16,.92));
+        }
+        .m-title {
+          margin: 0; font-size: clamp(19px, 5.4vw, 26px); font-weight: 900;
+          color: #fff; line-height: 1.15; text-shadow: 0 2px 18px rgba(0,0,0,.5);
+        }
+        .m-playbig {
+          display: flex; align-items: center; justify-content: center; gap: 8px;
+          padding: 13px 18px; border-radius: 14px; text-decoration: none;
+          font-weight: 900; letter-spacing: 2.2px; font-size: 13px; color: #fff;
+          background: linear-gradient(135deg, var(--acc, #7c3aed), #c026d3);
+          box-shadow: 0 8px 24px rgba(124,58,237,.35);
+          transition: transform .12s ease;
+        }
+        .m-playbig:active { transform: scale(.97); }
+
+        .m-bar {
+          position: sticky; top: 8px; z-index: 40;
+          display: flex; flex-direction: column; gap: 8px; padding: 10px;
+          border-radius: 16px; background: rgba(10,6,20,.92);
+          backdrop-filter: blur(12px); border: 1px solid #241543;
+        }
+        .m-bar .search { width: 100%; }
+        .m-chips {
+          display: flex; gap: 7px; overflow-x: auto; padding-bottom: 2px;
+          scrollbar-width: none; -webkit-overflow-scrolling: touch;
+        }
+        .m-chips::-webkit-scrollbar { display: none; }
+        .m-chips .fbtn { flex-shrink: 0; white-space: nowrap; }
+
+        .m-count {
+          font-size: 10px; font-weight: 900; letter-spacing: 2.4px;
+          color: #77689f; padding: 2px 6px 0;
+        }
+        .m-list {
+          list-style: none; margin: 0; padding: 0 0 34px;
+          display: flex; flex-direction: column; gap: 9px;
+        }
+        .m-item {
+          display: flex; align-items: center; gap: 12px;
+          padding: 10px 12px; border-radius: 15px; cursor: pointer;
+          background: rgba(21,12,40,.55); border: 1px solid #241643;
+          transition: border-color .15s ease, background .15s ease, transform .12s ease;
+        }
+        .m-item:active { transform: scale(.985); }
+        .m-item.on {
+          border-color: var(--acc); background: rgba(30,17,56,.78);
+          box-shadow: 0 0 0 1px var(--acc), 0 6px 22px rgba(0,0,0,.35);
+        }
+        .m-thumbbox {
+          position: relative; width: 54px; height: 54px; border-radius: 11px;
+          overflow: hidden; background: #130b24; flex-shrink: 0;
+          display: grid; place-items: center;
+        }
+        .m-thumbini {
+          position: absolute; font-size: 15px; font-weight: 900;
+          color: #584a80; letter-spacing: .5px;
+        }
+        .m-thumbimg {
+          position: absolute; inset: 0;
+          width: 100%; height: 100%; object-fit: cover;
+        }
+        .m-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+        .m-name {
+          font-size: 14.5px; font-weight: 800; color: #efe9ff;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .m-sub { font-size: 9.5px; font-weight: 800; letter-spacing: 1.8px; color: var(--acc); opacity: .85; }
+        .m-play {
+          width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%;
+          display: grid; place-items: center; font-size: 11px; text-decoration: none; color: #fff;
+          background: linear-gradient(135deg, var(--acc), #c026d3);
+          box-shadow: 0 4px 14px rgba(0,0,0,.4);
         }
       `}</style>
     </div>
