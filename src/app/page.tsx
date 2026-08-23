@@ -868,8 +868,9 @@ export default function Home() {
         @media (max-width: 1020px) {
           .stage-body { grid-template-columns: 1fr; }
           .rail-wrap {
-            order: 2;
-            border-right: 0; border-top: 1px solid rgba(167,139,250,.16);
+            order: -1;
+            border-right: 0; border-bottom: 1px solid rgba(167,139,250,.16);
+            border-top: 0;
           }
           .rail { max-height: 260px; }
           .stage-main { padding: 30px 26px 26px; grid-template-columns: 1fr; gap: 24px; }
@@ -879,22 +880,23 @@ export default function Home() {
         @media (max-width: 640px) {
           .nav { flex-wrap: wrap; padding: 12px 16px; }
           .links { width: 100%; justify-content: flex-start; }
-          .search { flex: 1; width: auto; }
-          main { padding: 4px 14px 34px; }
-          .stage-wrap { border-radius: 22px; }
-          .spot-title { font-size: clamp(26px, 8.4vw, 44px); }
+          .search { flex: 1; width: auto; min-width: 0; }
+          main { padding: 4px 14px 34px; overflow-x: hidden; }
+          .stage-wrap { border-radius: 22px; overflow-x: hidden; }
+          .spot-title { font-size: clamp(22px, 7vw, 34px); }
           .spot-hint { display: none; }
           .spot-actions { flex-wrap: wrap; gap: 10px; }
           .rail-head { padding: 10px 14px 8px; letter-spacing: 2px; }
-          .rail { padding: 4px 8px 12px; max-height: 320px; }
+          .rail { padding: 4px 8px 12px; max-height: min(46vh, 420px); }
           .rail-item { gap: 9px; padding: 7px 10px; font-size: 12.5px; border-radius: 10px; }
           .rail-sys {
-            width: min(var(--sys-w, 58px), 52px);
-            height: calc(min(var(--sys-w, 58px), 52px) * .78);
+            width: min(var(--sys-w, 58px), 50px);
+            height: calc(min(var(--sys-w, 58px), 50px) * .78);
             font-size: 15px;
           }
           .rail-play { width: 24px; height: 24px; font-size: 9px; }
-          .stage-main { padding: 20px 14px 18px; gap: 18px; }
+          .stage-main { padding: 18px 14px 16px; gap: 16px; }
+          .crt { width: min(100%, 280px); }
         }
       `}</style>
     </div>
