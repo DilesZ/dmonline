@@ -407,15 +407,6 @@ export default function Home() {
         </nav>
       </header>
 
-      <section className="hero">
-        <span className="hero-kicker">SALA DE MÁQUINAS · INSERTA MONEDA</span>
-        <h1>
-          Tu arcade <em>de infancia</em>,
-          <br />
-          en una sola pantalla
-        </h1>
-      </section>
-
       <main>
         {driveState === 'idle' && (
           <div className="stage-wrap skeleton-stage" aria-label="Cargando biblioteca">
@@ -512,29 +503,6 @@ export default function Home() {
         }
         .search::placeholder { color: #77689f; }
         .search:focus { border-color: #a78bfa; box-shadow: 0 0 14px rgba(124,58,237,.35); }
-
-        /* ===== HERO ===== */
-        .hero { text-align: center; padding: 30px 20px 22px; }
-        .hero-kicker {
-          display: inline-block; margin-bottom: 10px; padding: 5px 12px;
-          border-radius: 999px; border: 1px solid rgba(167,139,250,.35);
-          background: rgba(124,58,237,.12); color: #c4b5fd;
-          font-size: 10.5px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
-          animation: flicker 4s infinite;
-        }
-        @keyframes flicker {
-          0%, 100% { opacity: 1; } 92% { opacity: 1; } 93% { opacity: .55; } 94% { opacity: 1; } 96% { opacity: .7; } 97% { opacity: 1; }
-        }
-        .hero h1 {
-          font-size: clamp(26px, 4.2vw, 42px); font-weight: 900; line-height: 1.1;
-          color: #fff; letter-spacing: .5px; margin: 0;
-        }
-        .hero h1 em {
-          font-style: normal;
-          background: linear-gradient(90deg, #a78bfa, #e879f9, #a78bfa);
-          -webkit-background-clip: text; background-clip: text; color: transparent;
-          filter: drop-shadow(0 0 18px rgba(192,38,211,.45));
-        }
 
         main { flex: 1; width: 100%; max-width: 1280px; margin: 0 auto; padding: 6px 24px 46px; }
         .status { text-align: center; color: #9d8bc7; margin-top: 60px; font-size: 15px; }
@@ -814,7 +782,6 @@ export default function Home() {
           .nav { flex-wrap: wrap; padding: 12px 16px; }
           .links { width: 100%; justify-content: flex-start; }
           .search { flex: 1; width: auto; }
-          .hero { padding: 26px 16px 18px; }
           main { padding: 4px 14px 34px; }
           .stage-wrap { border-radius: 22px; }
           .spot-title { font-size: clamp(26px, 8.4vw, 44px); }
