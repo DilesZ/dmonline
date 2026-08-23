@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface DriveRom {
   id: string;
@@ -130,9 +130,7 @@ function Thumb({ sources, alt, className }: { sources: string[]; alt: string; cl
 function Spotlight({ items }: { items: LibraryItem[] }) {
   const [active, setActive] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
-  const [paused, setPaused] = useState(false);
   const [crtIdx, setCrtIdx] = useState(0);
-  const timerRef = useRef<number | null>(null);
 
   const go = useCallback(
     (index: number) => {
@@ -153,28 +151,13 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
     setActive((p) => (p >= items.length ? 0 : p));
   }, [items]);
 
-  // Rotación automática (se pausa al interactuar)
-  useEffect(() => {
-    if (paused || items.length < 2) return;
-    timerRef.current = window.setInterval(() => {
-      setActive((cur) => {
-        setPrev(cur);
-        setCrtIdx(0);
-        return (cur + 1) % items.length;
-      });
-    }, 6000);
-    return () => {
-      if (timerRef.current) window.clearInterval(timerRef.current);
-    };
-  }, [paused, items.length]);
-
   // Teclado: flechas navegan, Enter juega
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (document.activeElement?.tagName ?? '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || !items.length) return;
-      if (e.key === 'ArrowRight') { go(active + 1); setPaused(true); }
-      else if (e.key === 'ArrowLeft') { go(active - 1); setPaused(true); }
+      if (e.key === 'ArrowRight') { go(active + 1); }
+      else if (e.key === 'ArrowLeft') { go(active - 1); }
       else if (e.key === 'Enter') window.location.href = items[active]?.href ?? '/';
     };
     window.addEventListener('keydown', onKey);
@@ -202,8 +185,6 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
     <section
       className="stage-wrap"
       aria-label="Escenario de juegos"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
       style={{ '--acc': acc.main, '--acc-soft': acc.soft, '--acc-glow': acc.glow } as React.CSSProperties}
     >
       {/* Fondo ambiental: carátula desenfocada del juego activo */}
