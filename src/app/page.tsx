@@ -55,20 +55,20 @@ const SYS_MARK: Record<string, string> = {
   manager: 'PF',
 };
 
-// Logos oficiales (Wikimedia Commons, thumbs 120px desde SVG = nítidos a cualquier tamaño)
-const PLATFORM_LOGO: Record<string, string> = {
-  snes: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Super_Nintendo_Entertainment_System_logo.svg/120px-Super_Nintendo_Entertainment_System_logo.svg.png',
-  nes: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/NES_logo.svg/120px-NES_logo.svg.png',
-  segaMD: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Sega_genesis_logo.svg/120px-Sega_genesis_logo.svg.png',
-  arcade: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Crystal128-input-gaming.svg/120px-Crystal128-input-gaming.svg.png',
-  manager: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Soccer_ball.svg/120px-Soccer_ball.svg.png',
+// Logos oficiales de plataforma (Wikimedia Commons). w = ancho del slot según proporción del logo
+const PLATFORM_LOGO: Record<string, { src: string; w: number }> = {
+  snes: { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Super_Nintendo_Entertainment_System_logo.svg/250px-Super_Nintendo_Entertainment_System_logo.svg.png', w: 74 },
+  nes: { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/NES_logo.svg/120px-NES_logo.svg.png', w: 56 },
+  segaMD: { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/SEGA_logo.svg/250px-SEGA_logo.svg.png', w: 64 },
+  arcade: { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Crystal128-input-gaming.svg/120px-Crystal128-input-gaming.svg.png', w: 52 },
+  manager: { src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Soccer_ball.svg/120px-Soccer_ball.svg.png', w: 48 },
 };
 
 function SysLogo({ core, fallback }: { core: string; fallback: string }) {
-  const url = PLATFORM_LOGO[core];
+  const logo = PLATFORM_LOGO[core];
   const [err, setErr] = useState(false);
-  if (!url || err) return <>{fallback}</>;
-  return <img src={url} alt="" loading="lazy" onError={() => setErr(true)} />;
+  if (!logo || err) return <>{fallback}</>;
+  return <img src={logo.src} alt="" loading="lazy" onError={() => setErr(true)} />;
 }
 
 function thumbCandidates(core: string, target: string): string[] {
@@ -242,7 +242,7 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
                   onClick={() => go(index)}
                 >
                   <span className="rail-title">{item.title}</span>
-                  <span className="rail-sys" title={`${CORE_LABEL[item.core] ?? item.core}`} style={{ '--i-acc': a.main, '--i-soft': a.soft } as React.CSSProperties}><SysLogo core={item.core} fallback={sys} /></span>
+                  <span className="rail-sys" title={`${CORE_LABEL[item.core] ?? item.core}`} style={{ width: PLATFORM_LOGO[item.core]?.w ?? 58 } as React.CSSProperties}><SysLogo core={item.core} fallback={sys} /></span>
                   <a
                     className="rail-play"
                     href={item.href}
@@ -621,23 +621,20 @@ export default function Home() {
         }
         .rail-sys {
           flex-shrink: 0;
-          width: 58px; height: 46px;
+          height: 46px;
           display: flex; align-items: center; justify-content: center;
           font-family: 'VT323', monospace; font-size: 24px;
           letter-spacing: .5px;
           color: var(--i-acc);
         }
         .rail-sys img {
-          max-width: 100%; max-height: 100%;
           width: 100%; height: 100%;
           object-fit: contain; display: block;
-          filter: brightness(0) invert(1);
-          opacity: .85;
-          transition: opacity .15s ease, filter .15s ease;
+          filter: drop-shadow(0 0 1px rgba(255,255,255,.3)) drop-shadow(0 1px 3px rgba(0,0,0,.55));
+          transition: filter .15s ease;
         }
         .rail-item:hover .rail-sys img, .rail-item.on .rail-sys img {
-          filter: brightness(0) invert(1) drop-shadow(0 0 7px var(--i-acc));
-          opacity: 1;
+          filter: drop-shadow(0 0 1px rgba(255,255,255,.3)) drop-shadow(0 0 8px var(--i-acc));
         }
         .rail-play {
           flex-shrink: 0;
