@@ -340,7 +340,7 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
                   onClick={() => go(index)}
                 >
                   <span className="rail-title">{item.title}</span>
-                  <span className="rail-sys" title={`${CORE_LABEL[item.core] ?? item.core}`} style={{ width: PLATFORM_LOGO[item.core]?.w ?? 58 } as React.CSSProperties}><SysLogo core={item.core} fallback={sys} /></span>
+                  <span className="rail-sys" title={`${CORE_LABEL[item.core] ?? item.core}`} style={{ '--sys-w': `${PLATFORM_LOGO[item.core]?.w ?? 58}px` } as React.CSSProperties}><SysLogo core={item.core} fallback={sys} /></span>
                   <a
                     className="rail-play"
                     href={item.href}
@@ -691,7 +691,8 @@ export default function Home() {
         }
         .rail-sys {
           flex-shrink: 0;
-          height: 46px;
+          width: var(--sys-w, 58px);
+          height: calc(var(--sys-w, 58px) * .82);
           display: flex; align-items: center; justify-content: center;
           font-family: 'VT323', monospace; font-size: 24px;
           letter-spacing: .5px;
@@ -870,7 +871,7 @@ export default function Home() {
             order: 2;
             border-right: 0; border-top: 1px solid rgba(167,139,250,.16);
           }
-          .rail { max-height: 210px; }
+          .rail { max-height: 260px; }
           .stage-main { padding: 30px 26px 26px; grid-template-columns: 1fr; gap: 24px; }
           .crt { width: min(100%, 340px); transform: none; margin: 0 auto; }
           @keyframes crtIn { from { opacity: 0; transform: translateY(22px) scale(.96); } to { opacity: 1; transform: none; } }
@@ -883,9 +884,17 @@ export default function Home() {
           .stage-wrap { border-radius: 22px; }
           .spot-title { font-size: clamp(26px, 8.4vw, 44px); }
           .spot-hint { display: none; }
-          .rail-head { padding: 10px 16px 8px; }
-          .rail { padding: 0 8px 12px; }
-          .stage-main { padding: 24px 18px 20px; }
+          .spot-actions { flex-wrap: wrap; gap: 10px; }
+          .rail-head { padding: 10px 14px 8px; letter-spacing: 2px; }
+          .rail { padding: 4px 8px 12px; max-height: 320px; }
+          .rail-item { gap: 9px; padding: 7px 10px; font-size: 12.5px; border-radius: 10px; }
+          .rail-sys {
+            width: min(var(--sys-w, 58px), 52px);
+            height: calc(min(var(--sys-w, 58px), 52px) * .78);
+            font-size: 15px;
+          }
+          .rail-play { width: 24px; height: 24px; font-size: 9px; }
+          .stage-main { padding: 20px 14px 18px; gap: 18px; }
         }
       `}</style>
     </div>
