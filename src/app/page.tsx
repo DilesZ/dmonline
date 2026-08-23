@@ -241,9 +241,6 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
                   onMouseEnter={() => go(index)}
                   onClick={() => go(index)}
                 >
-                  <span className="rail-thumb">
-                    <Thumb sources={item.covers} alt="" />
-                  </span>
                   <span className="rail-title">{item.title}</span>
                   <span className="rail-sys" title={`${CORE_LABEL[item.core] ?? item.core}`} style={{ '--i-acc': a.main, '--i-soft': a.soft } as React.CSSProperties}><SysLogo core={item.core} fallback={sys} /></span>
                   <a
@@ -618,32 +615,22 @@ export default function Home() {
           color: #fff;
           box-shadow: inset 3px 0 0 var(--i-acc);
         }
-        .rail-thumb {
-          width: 40px; height: 52px; flex-shrink: 0;
-          border-radius: 7px; overflow: hidden;
-          border: 1px solid rgba(167,139,250,.25);
-          opacity: 0; transform: scale(.85) rotate(-4deg);
-          transition: opacity .18s ease, transform .18s ease;
-          background: #120a20;
-        }
-        .rail-item.on .rail-thumb, .rail-item:hover .rail-thumb { opacity: 1; transform: none; }
-        .rail-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .rail-title {
           flex: 1; min-width: 0;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .rail-sys {
           flex-shrink: 0;
-          width: 28px; height: 28px;
-          border-radius: 8px;
+          width: 44px; height: 44px;
+          border-radius: 11px;
           display: flex; align-items: center; justify-content: center;
-          font-family: 'VT323', monospace; font-size: 13px;
+          font-family: 'VT323', monospace; font-size: 18px;
           letter-spacing: .5px;
           color: var(--i-acc);
           background: rgba(255,255,255,.92);
           border: 1px solid var(--i-acc);
         }
-        .rail-sys img { width: 100%; height: 100%; object-fit: contain; display: block; padding: 3px; box-sizing: border-box; }
+        .rail-sys img { width: 100%; height: 100%; object-fit: contain; display: block; padding: 5px; box-sizing: border-box; }
         .rail-play {
           flex-shrink: 0;
           margin-left: auto;
