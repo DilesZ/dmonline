@@ -621,16 +621,24 @@ export default function Home() {
         }
         .rail-sys {
           flex-shrink: 0;
-          width: 44px; height: 44px;
-          border-radius: 11px;
+          width: 58px; height: 46px;
           display: flex; align-items: center; justify-content: center;
-          font-family: 'VT323', monospace; font-size: 18px;
+          font-family: 'VT323', monospace; font-size: 24px;
           letter-spacing: .5px;
           color: var(--i-acc);
-          background: rgba(255,255,255,.92);
-          border: 1px solid var(--i-acc);
         }
-        .rail-sys img { width: 100%; height: 100%; object-fit: contain; display: block; padding: 5px; box-sizing: border-box; }
+        .rail-sys img {
+          max-width: 100%; max-height: 100%;
+          width: 100%; height: 100%;
+          object-fit: contain; display: block;
+          filter: brightness(0) invert(1);
+          opacity: .85;
+          transition: opacity .15s ease, filter .15s ease;
+        }
+        .rail-item:hover .rail-sys img, .rail-item.on .rail-sys img {
+          filter: brightness(0) invert(1) drop-shadow(0 0 7px var(--i-acc));
+          opacity: 1;
+        }
         .rail-play {
           flex-shrink: 0;
           margin-left: auto;
