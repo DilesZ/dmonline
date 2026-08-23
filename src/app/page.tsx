@@ -281,7 +281,7 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
       if (tag === 'input' || tag === 'textarea' || !items.length) return;
       if (e.key === 'ArrowRight') { go(active + 1); }
       else if (e.key === 'ArrowLeft') { go(active - 1); }
-      else if (e.key === 'Enter') window.location.href = items[active]?.href ?? '/';
+      else if (e.key === 'Enter') window.open(items[active]?.href, '_blank', 'noopener');
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -344,6 +344,8 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
                   <a
                     className="rail-play"
                     href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     title={`Jugar a ${item.title}`}
                     aria-label={`Jugar a ${item.title}`}
                     onClick={(e) => e.stopPropagation()}
@@ -365,7 +367,7 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
             </div>
             <h2 className="spot-title">{current.title}</h2>
             <div className="spot-actions">
-              <a className="spot-play" href={current.href}>
+              <a className="spot-play" href={current.href} target="_blank" rel="noopener noreferrer">
                 <span className="play-tri">▶</span> JUGAR AHORA
               </a>
               <span className="spot-hint">← → cambiar · Enter jugar</span>
