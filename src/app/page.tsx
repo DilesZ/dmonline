@@ -55,6 +55,22 @@ const SYS_MARK: Record<string, string> = {
   manager: 'PF',
 };
 
+// Logos oficiales (Wikimedia Commons, thumbs 120px desde SVG = nítidos a cualquier tamaño)
+const PLATFORM_LOGO: Record<string, string> = {
+  snes: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Super_Nintendo_Entertainment_System_logo.svg/120px-Super_Nintendo_Entertainment_System_logo.svg.png',
+  nes: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/NES_logo.svg/120px-NES_logo.svg.png',
+  segaMD: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Sega_genesis_logo.svg/120px-Sega_genesis_logo.svg.png',
+  arcade: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Crystal128-input-gaming.svg/120px-Crystal128-input-gaming.svg.png',
+  manager: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Soccer_ball.svg/120px-Soccer_ball.svg.png',
+};
+
+function SysLogo({ core, fallback }: { core: string; fallback: string }) {
+  const url = PLATFORM_LOGO[core];
+  const [err, setErr] = useState(false);
+  if (!url || err) return <>{fallback}</>;
+  return <img src={url} alt="" loading="lazy" onError={() => setErr(true)} />;
+}
+
 function thumbCandidates(core: string, target: string): string[] {
   if (/^https?:\/\//.test(target)) return [target];
   const sys = SYS_BY_CORE[core] ?? SYS_BY_CORE.snes;
@@ -229,7 +245,7 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
                     <Thumb sources={item.covers} alt="" />
                   </span>
                   <span className="rail-title">{item.title}</span>
-                  <span className="rail-sys" title={`${CORE_LABEL[item.core] ?? item.core}`} style={{ '--i-acc': a.main, '--i-soft': a.soft } as React.CSSProperties}>{sys}</span>
+                  <span className="rail-sys" title={`${CORE_LABEL[item.core] ?? item.core}`} style={{ '--i-acc': a.main, '--i-soft': a.soft } as React.CSSProperties}><SysLogo core={item.core} fallback={sys} /></span>
                   <a
                     className="rail-play"
                     href={item.href}
@@ -624,9 +640,10 @@ export default function Home() {
           font-family: 'VT323', monospace; font-size: 13px;
           letter-spacing: .5px;
           color: var(--i-acc);
-          background: var(--i-soft);
+          background: rgba(255,255,255,.92);
           border: 1px solid var(--i-acc);
         }
+        .rail-sys img { width: 100%; height: 100%; object-fit: contain; display: block; padding: 3px; box-sizing: border-box; }
         .rail-play {
           flex-shrink: 0;
           margin-left: auto;
