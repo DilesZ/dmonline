@@ -250,7 +250,7 @@ function GameVideo({ sources }: { sources: string[] }) {
 /* ============================================================
    SPOTLIGHT — escenario cinemático con índice tipográfico
    ============================================================ */
-function Spotlight({ items }: { items: LibraryItem[] }) {
+function Spotlight({ items, favorites, toggleFavorite, isFavorite }: { items: LibraryItem[]; favorites: Set<string>; toggleFavorite: (id: string) => void; isFavorite: (id: string) => boolean }) {
   const [active, setActive] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
   const [crtIdx, setCrtIdx] = useState(0);
@@ -341,6 +341,14 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
                 >
                   <span className="rail-title">{item.title}</span>
                   <span className="rail-sys" title={`${CORE_LABEL[item.core] ?? item.core}`} style={{ '--sys-w': `${PLATFORM_LOGO[item.core]?.w ?? 58}px` } as React.CSSProperties}><SysLogo core={item.core} fallback={sys} /></span>
+                  <button
+                    className={`rail-fav${isFavorite(item.id) ? ' on' : ''}`}
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
+                    aria-label={isFavorite(item.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+                    title={isFavorite(item.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+                  >
+                    ★
+                  </button>
                   <a
                     className="rail-play"
                     href={item.href}
@@ -404,12 +412,15 @@ function Spotlight({ items }: { items: LibraryItem[] }) {
    de tarjetas a página completa (sin scroll interno limitado)
    ============================================================ */
 function MobileLibrary({
-  items, query, setQuery, filter, setFilter, platforms,
+  items, query, setQuery, filter, setFilter, platforms, favorites, toggleFavorite, isFavorite,
 }: {
   items: LibraryItem[];
   query: string; setQuery: (v: string) => void;
   filter: string; setFilter: (v: string) => void;
   platforms: string[];
+  favorites: Set<string>;
+  toggleFavorite: (id: string) => void;
+  isFavorite: (id: string) => boolean;
 }) {
   const [active, setActive] = useState(0);
   const [shotIdx, setShotIdx] = useState(0);
@@ -475,6 +486,9 @@ function MobileLibrary({
           <button className={`fbtn${filter === 'all' ? ' on' : ''}`} onClick={() => setFilter('all')}>
             Todos
           </button>
+          <button className={`fbtn${filter === 'favorites' ? ' on' : ''}`} onClick={() => setFilter('favorites')} title="Favoritos">
+            ★
+          </button>
           {platforms.map((core) => (
             <button
               key={core}
@@ -511,6 +525,14 @@ function MobileLibrary({
                 <span className="m-name">{item.title}</span>
                 <span className="m-sub">{CORE_LABEL[item.core] ?? item.core.toUpperCase()}</span>
               </span>
+              <button
+                className={`m-fav${isFavorite(item.id) ? ' on' : ''}`}
+                onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
+                aria-label={isFavorite(item.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+                title={isFavorite(item.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+              >
+                ★
+              </button>
               <a
                 className="m-play"
                 href={item.href}
@@ -536,6 +558,25 @@ export default function Home() {
   const [driveState, setDriveState] = useState<'idle' | 'ok' | 'error'>('idle');
   const [filter, setFilter] = useState<string>('all');
   const [query, setQuery] = useState('');
+
+  // Favoritos persistidos en localStorage
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('juegosz-favorites');
+      if (stored) setFavorites(new Set(JSON.parse(stored)));
+    } catch {}
+  }, []);
+  const toggleFavorite = useCallback((id: string) => {
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      try { localStorage.setItem('juegosz-favorites', JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  }, []);
+  const isFavorite = (id: string) => favorites.has(id);
 
   // Plantilla móvil propia por debajo de 860px
   const [isMobile, setIsMobile] = useState(false);
@@ -586,11 +627,13 @@ export default function Home() {
   const filteredRoms = useMemo(() => {
     const q = norm(query.trim());
     return roms.filter((rom) => {
-      if (filter !== 'all' && (rom.core ?? 'snes') !== filter) return false;
+      if (filter === 'favorites') {
+        if (!favorites.has(rom.id)) return false;
+      } else if (filter !== 'all' && (rom.core ?? 'snes') !== filter) return false;
       if (!q) return true;
       return norm(rom.name.replace(/\.[^.]+$/, '')).includes(q);
     });
-  }, [filter, query, roms]);
+  }, [filter, query, roms, favorites]);
 
   const showWebItem =
     filter === 'all' &&
@@ -620,6 +663,14 @@ export default function Home() {
             onClick={() => setFilter('all')}
           >
             Todos
+          </button>
+          <button
+            className={`fbtn${filter === 'favorites' ? ' on' : ''}`}
+            onClick={() => setFilter('favorites')}
+            title="Favoritos"
+            aria-label="Favoritos"
+          >
+            ★
           </button>
           {platforms.map((core) => (
             <button
@@ -677,9 +728,12 @@ export default function Home() {
               filter={filter}
               setFilter={setFilter}
               platforms={platforms}
+              favorites={favorites}
+              toggleFavorite={toggleFavorite}
+              isFavorite={isFavorite}
             />
           ) : (
-            <Spotlight items={spotlightItems} />
+            <Spotlight items={spotlightItems} favorites={favorites} toggleFavorite={toggleFavorite} isFavorite={isFavorite} />
           )
         )}
       </main>
@@ -1046,9 +1100,18 @@ export default function Home() {
             height: calc(min(var(--sys-w, 58px), 50px) * .78);
             font-size: 15px;
           }
-          .rail-play { width: 24px; height: 24px; font-size: 9px; }
-          .stage-main { padding: 18px 14px 16px; gap: 16px; }
-          .crt { width: min(100%, 280px); }
+          .rail-play {
+          width: 24px; height: 24px; font-size: 9px; }
+        .rail-fav {
+          width: 24px; height: 24px; font-size: 11px; line-height: 1;
+          display: grid; place-items: center; cursor: pointer;
+          background: transparent; border: 1px solid #37265c; border-radius: 6px;
+          color: #77689f; transition: all .15s ease;
+        }
+        .rail-fav:hover { border-color: #fbbf24; color: #fbbf24; background: rgba(251,191,36,.1); }
+        .rail-fav.on { border-color: #fbbf24; color: #fbbf24; background: rgba(251,191,36,.2); box-shadow: 0 0 10px rgba(251,191,36,.4); }
+        .stage-main { padding: 18px 14px 16px; gap: 16px; }
+        .crt { width: min(100%, 280px); }
         }
 
         /* ===== PLANTILLA MÓVIL (≤860px, árbol JSX propio) ===== */
@@ -1167,6 +1230,14 @@ export default function Home() {
           background: linear-gradient(135deg, var(--acc), #c026d3);
           box-shadow: 0 4px 14px rgba(0,0,0,.4);
         }
+        .m-fav {
+          width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%;
+          display: grid; place-items: center; font-size: 13px; line-height: 1;
+          cursor: pointer; background: transparent; border: 1px solid #37265c;
+          color: #77689f; transition: all .15s ease;
+        }
+        .m-fav:hover { border-color: #fbbf24; color: #fbbf24; background: rgba(251,191,36,.1); }
+        .m-fav.on { border-color: #fbbf24; color: #fbbf24; background: rgba(251,191,36,.2); box-shadow: 0 0 10px rgba(251,191,36,.4); }
       `}</style>
     </div>
   );
